@@ -23,21 +23,21 @@ public class regexManager {
     private static final Pattern SPACE_PATTERN = Pattern.compile("^\\s*$");
     private static final Pattern BACKSLASH_PATTERN = Pattern.compile("^\\/\\/.*");
     private static final Pattern VARIABLE_NAME_PATTERN = Pattern.compile("(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
-//    private static final Pattern METHOD_NAME_PATTERN = Pattern.compile("(\\s*[A-Za-z]\\w*\\w*\\s*)|(_\\w+)");
+    //    private static final Pattern METHOD_NAME_PATTERN = Pattern.compile("(\\s*[A-Za-z]\\w*\\w*\\s*)|(_\\w+)");
 //    private static final String METHOD_PARAMETERS = "(\\(\\))";
     private static final String METHOD_NAME = "(\\s*[A-Za-z]\\w*\\s*)|(_\\w+\\s*)";
     private static final Pattern METHOD_PATTERN = Pattern.compile("\\s*void\\s*(([A-Za-z]\\w*\\s*)|([_]\\w+\\s*))\\s*[(](.*)[)]\\s*[{]");
-//    private static final Pattern PARAMETERS_PATTERN = Pattern.compile("\\s*\\(\\)\\s*");
-//    private static final Pattern RETURN_STATEMENT_PATTERN = Pattern.compile("\\s*(return\\s*;)$");
+    //    private static final Pattern PARAMETERS_PATTERN = Pattern.compile("\\s*\\(\\)\\s*");
+    private static final Pattern RETURN_STATEMENT_PATTERN = Pattern.compile("\\s*(return\\s*;)$");
 //    private static final Pattern OPEN_STATEMENT_PATTERN = Pattern.compile("\\s*(\\{\\s*)$");
     private static final Pattern CLOSED_STATEMENT_PATTERN = Pattern.compile("\\s*(}\\s*)");
     private static final Pattern IF_PATTERN = Pattern.compile("\\s*if\\s*[(](.*)[)]\\s*[{]");
     private static final Pattern WHILE_PATTERN = Pattern.compile("\\s*while\\s*[(](.*)[)]\\s*[{]");
+    private static final Pattern CONDITION_PATTERN = Pattern.compile("\\s*((int|double|boolean|char|String)\\s+).*(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
     private static final Pattern FINAL_STATEMENT_PATTERN
             = Pattern.compile("\\s*(final\\s*)\\s+((int|double|boolean|char|String)\\s+.*)$");
     //check if before final there spaces
     private static final Pattern TYPE_PATTERN = Pattern.compile("\\s*((int|double|boolean|char|String)\\s+).*");
-    private static final Pattern CONDITION_VAR_PATTERN = Pattern.compile("\\s*((int|double|boolean|char|String)\\s+)(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
     private static final Pattern FINAL_PATTERN = Pattern.compile(FINAL_STATEMENT);
     private static final Pattern COMMA_PATTERN = Pattern.compile(".*,\\s*(,).*");
     private static final String RESERVED_KEYWORDS =
@@ -95,46 +95,67 @@ public class regexManager {
             lineToRead = lineToRead.replaceFirst("final", "");
         Matcher validVariableWithNoTypeMatcher = VAR_TO_VAR_PATTERN.matcher(lineToRead);
         //pattern to match a specific case a=b without type
-        if (validVariableWithNoTypeMatcher.matches()){
-            if(AssignVariableToVariable(lineToRead,globalHashMap))
+        if (validVariableWithNoTypeMatcher.matches()) {
+            if (AssignVariableToVariable(lineToRead, globalHashMap))
                 return;
             //todo check
         }
         String typeTuple[] = typeChecker(lineToRead);
         String typeToInsert = typeTuple[0], variables = typeTuple[1];
-
         String[] allVariables = illegalCommaChecker(variables);
         for (String variableToAnalyze : allVariables) {
-            String[] specificVariable = variableToAnalyze.split("=");
-            int allowedLength = 2;
-            if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
-                throw new CompileErrorException();
-            specificVariable[0] = specificVariable[0].trim();
-            Matcher validVariableMatcher = VARIABLE_NAME_PATTERN.matcher(specificVariable[0]);
-            if (validVariableMatcher.matches()) {
-                Matcher reservedKeyMatches = RESERVED_KEYWORDS_PATTERN.matcher(specificVariable[0]); // check that the variable isn't a reserved word
-                if (reservedKeyMatches.matches()) {
-                    throw new CompileErrorException();  // illegal variable name
-                }
-                boolean initialization = false;
-                if (specificVariable.length == 2) {
-                    initialization = true;
-                    if (!checkLegalAssignment(specificVariable[1], typeToInsert, globalHashMap)) //check the the type is legal
-                        throw new CompileErrorException();
-                } else if (isFinal)
-                    throw new CompileErrorException();
-                if (globalHashMap.containsKey(specificVariable[0])) {
-                    GlobalVariable existVar = globalHashMap.get(specificVariable[0]);
-                    if (existVar.isInitialization())
-                        throw new CompileErrorException();
-                }
-                //if the key exs but the existing global variable isn't initialize it ok
-                globalHashMap.put(specificVariable[0], new GlobalVariable(typeToInsert, initialization, isFinal, specificVariable[0]));
-                //todo specificVariable[0] twice ? the first supposed to be type
-            } else
-                throw new CompileErrorException();
+            addSingleVariable(variableToAnalyze, isFinal,globalHashMap, typeToInsert);
         }
 //        return globals;
+    }
+
+    /**
+     * Add a single new variable to the hashmap if it is legal
+     * @param variableToAnalyze
+     * @param isFinal
+     * @param globalHashMap
+     * @param typeToInsert
+     * @throws CompileErrorException
+     */
+    private static void addSingleVariable(String variableToAnalyze, boolean isFinal, HashMap<String,
+            GlobalVariable> globalHashMap, String typeToInsert)
+            throws
+            CompileErrorException {
+        String[] specificVariable = variableToAnalyze.split("=");
+        int allowedLength = 2;
+        if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
+            throw new CompileErrorException();
+        specificVariable[0] = specificVariable[0].trim();
+        reservedKeyWordCheck(specificVariable[0]);
+            boolean initialization = false;
+            if (specificVariable.length == 2) {
+                initialization = true;
+                if (!checkLegalAssignment(specificVariable[1], typeToInsert, globalHashMap))
+                    //check the the type is legal
+                    throw new CompileErrorException();
+            } else if (isFinal)
+                throw new CompileErrorException();
+            if (globalHashMap.containsKey(specificVariable[0])) {
+                GlobalVariable existVar = globalHashMap.get(specificVariable[0]);
+                if (existVar.isInitialization())
+                    throw new CompileErrorException();
+            }
+            //if the key exs but the existing global variable isn't initialize it ok
+            globalHashMap.put(specificVariable[0], new GlobalVariable(typeToInsert, initialization, isFinal, specificVariable[0]));
+            //todo specificVariable[0] twice ? type is the name, therefore twice
+    }
+
+
+    private static void reservedKeyWordCheck(String stringToCheck) throws CompileErrorException {
+        Matcher validVariableMatcher = VARIABLE_NAME_PATTERN.matcher(stringToCheck);
+        if (validVariableMatcher.matches()) {
+            Matcher reservedKeyMatches = RESERVED_KEYWORDS_PATTERN.matcher(stringToCheck);
+            // check that the variable isn't a reserved word
+            if (reservedKeyMatches.matches()) {
+                throw new CompileErrorException();  // illegal variable name
+            }
+        } else
+            throw new CompileErrorException();
     }
 
 
@@ -288,28 +309,30 @@ public class regexManager {
     }
 
     /**
-     *
-     *
      * @param currentLine the current line should be something like "a=b" (without type of a)
      * @return
      * @throws CompileErrorException
      */
-    private static boolean AssignVariableToVariable(String currentLine , HashMap<String,GlobalVariable> variables )
+    private static boolean AssignVariableToVariable(String currentLine, HashMap<String, GlobalVariable> variables)
             throws CompileErrorException {
         String[] lines = currentLine.split("=");
         String variable = lines[0];
         String AssignmentToCheck = lines[1];
-        if(variables.containsKey(variable)) {
+        if (variables.containsKey(variable)) {
             GlobalVariable variableInHash = variables.get(variable);
-            String type =variableInHash.getType();
-            if(variableInHash.isFinal())
+            String type = variableInHash.getType();
+            if (variableInHash.isFinal())
                 throw new CompileErrorException();
-            return checkLegalAssignment(AssignmentToCheck, type, variables);
+            if(checkLegalAssignment(AssignmentToCheck, type, variables)) {
+                variables.get(variable).setInitialization(true);
+                return true;
+            }
+            return false;
+
         }
         throw new CompileErrorException();
 
     }
-
 
 
     /**
@@ -325,7 +348,7 @@ public class regexManager {
         //var to analyze are inside ()
         String parameters = methodChecker(lineToRead);
         String[] parametersList = parameters.split(",");
-        for(String specificParameter : parametersList) {
+        for (String specificParameter : parametersList) {
             Matcher validVariableMatcher = VARIABLE_NAME_PATTERN.matcher(specificParameter);
             if (!validVariableMatcher.matches())
                 throw new CompileErrorException();
@@ -334,20 +357,21 @@ public class regexManager {
                 throw new CompileErrorException();  // illegal variable name
             }
             boolean isFinal = finalHandle(specificParameter);
-            if(isFinal)
+            if (isFinal)
                 specificParameter = specificParameter.replaceFirst("final", "");
             String typeTuple[] = typeChecker(specificParameter);
             String typeToInsert = typeTuple[0], variable = typeTuple[1];
 
 
-            methodHashMap.put(typeToInsert, new Method(typeToInsert, isFinal, variable));
+//            methodHashMap.put(typeToInsert, new Method(typeToInsert, isFinal, variable));
 
 
         }
 //        if (isFinal)
 //            lineToRead = lineToRead.replaceFirst("final", "");
     }
-//        String[] specificVariable = variableToAnalyze.split(",");
+
+    //        String[] specificVariable = variableToAnalyze.split(",");
 //        //todo split the param by comma
 //        boolean isFinal = finalHandle(lineToRead);
 //        if (isFinal)
@@ -419,18 +443,19 @@ public class regexManager {
         return whileMatcher.group(1); //returns the statement inside while
     }
 
-    public static String checkConditionInsideWhileIf(String lineToRead) throws CompileErrorException {
+    public static String checkConditionInsideWhileIf(String lineToRead,String condition) throws CompileErrorException {
         String conditionIf = isIfStatement(lineToRead);
         String conditionWhile = isWhileStatement(lineToRead);
-        Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(lineToRead); //check the case "if(){" with spaces
-        if (!booleanMatcher.matches()) {
-            Matcher varBooleanMatcher = CONDITION_VAR_PATTERN.matcher(lineToRead); //check the case "if(){" with spaces
-            if (!varBooleanMatcher.matches()) {
-            //to check if the var exist and match to type by method
-
+        Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(lineToRead); //check if there is false\true statement
+        if (booleanMatcher.matches()) {
+            return condition;
+        }
+        Matcher booleanVarMatcher = CONDITION_PATTERN.matcher(lineToRead);
+        if(booleanMatcher.matches()){
+            reservedKeyWordCheck(lineToRead);
         }
 
+
+        }
     }
-
-
 }
