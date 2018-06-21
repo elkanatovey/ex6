@@ -52,7 +52,7 @@ public class compilationChecker {
                     regexManager.isValidGlobalVariable(currentLine, globals);
                     return 0;
                 }
-                regexManager.
+                regexManager.  //
             case '{':
                 if (scope==GLOBAL_SCOPE) {
                     regexManager.isValidParameterVariable(currentLine,);
@@ -79,6 +79,7 @@ public class compilationChecker {
     private static void checkMethods(HashMap<String, GlobalVariable> globals, LinkedList<Method> methods)
             throws CompileErrorException{
         for (Method currentMethod: methods){
+            currentMethod.getLinesToRead().pollFirst(); // removes header line
             if (currentMethod.getLinesToRead().size()<2) //todo remove first line from method lines
                 throw new CompileErrorException();
             if (currentMethod.getLinesToRead().peekLast().contentEquals("}")&&
