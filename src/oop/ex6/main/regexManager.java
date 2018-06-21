@@ -354,7 +354,8 @@ public class regexManager {
      * @throws CompileErrorException
      */
     public static void isValidParameterVariable
-    (String lineToRead, HashMap<String, Method> methodHashMap, HashMap<String, LocalVariable> localHashMap) throws CompileErrorException {
+    (String lineToRead, LinkedList<Method> methodLinkedList, HashMap<String, LocalVariable> localHashMap)
+            throws CompileErrorException {
         lineToRead = lineToRead.trim();
 //        if (lineToRead.endsWith(";"))
 //            lineToRead = lineToRead.substring(0, lineToRead.length() - 1);
@@ -375,11 +376,11 @@ public class regexManager {
                 throw new CompileErrorException();
             localHashMap.put(variableName, localVar); //add the local variable (parameters) of a method
             LinkedList<String> linkedList = new LinkedList<String>();
-            Method method = new Method(localHashMap, methodName, linkedList, methodHashMap);
-            methodHashMap.put(methodName, method);
+            Method method = new Method(localHashMap, methodName, linkedList, methodLinkedList);
+            methodLinkedList.add(method);
 
 
-//            methodHashMap.put(typeToInsert, new Method(typeToInsert, isFinal, variable));
+//            methodLinkedList.put(typeToInsert, new Method(typeToInsert, isFinal, variable));
 
 
         }
@@ -494,7 +495,7 @@ public class regexManager {
         //todo check the pattern
 
 
-    }
+
 
     //*check the case if(a) when a is a variable*/
     private static boolean condiotnCaseVariable(String lineToRead, HashMap<String, LocalVariable> variablesToCheck) throws CompileErrorException {
