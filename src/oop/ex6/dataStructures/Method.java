@@ -18,7 +18,7 @@ public class Method {
 
     private Method methodParent;
 
-    private HashMap<String, Method> methodHashMap;
+    private LinkedList<Method> methodLinkedList;
 
     private static final String RECURSIVE_CALL_NAME = "if/while";
 
@@ -29,12 +29,12 @@ public class Method {
      * @param methodName
      */
     public Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
-                  LinkedList<String> linesToRead, HashMap<String, Method> methodHashMap){
+                  LinkedList<String> linesToRead, LinkedList<Method> methodLinkedList){
         this.variablesInScope = variablesInScope;
         this.methodName = methodName;
         this.linesToRead = linesToRead;
         this.globals = new HashMap<>();
-        this.methodHashMap = methodHashMap;
+        this.methodLinkedList = methodLinkedList;
         this.methodParent = null;  //default
     }
 
@@ -43,7 +43,7 @@ public class Method {
      */
     private Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
                    LinkedList<String> linesToRead, Method methodParent){
-        this(variablesInScope,methodName,linesToRead, methodParent.methodHashMap);
+        this(variablesInScope,methodName,linesToRead, methodParent.methodLinkedList);
         this.methodParent = methodParent;
     }
 
@@ -54,8 +54,8 @@ public class Method {
      * @param legalMethods
      * @return
      */
-    public static boolean isLegalMethod(String methodName, HashMap<String,Method> legalMethods){
-        if(legalMethods.containsKey(methodName))
+    public static boolean isLegalMethod(String methodName, LinkedList<Method> legalMethods){
+        if(legalMethods.contains(methodName))
             return true;
         return false;
     }
@@ -72,6 +72,11 @@ public class Method {
         return variablesInScope;
     }
 
+    /**
+     * Add a new local variable to the current scope
+     * @param variableToAdd
+     * @throws CompileErrorException
+     */
     public void addLocalVariable(LocalVariable variableToAdd) throws CompileErrorException {
         if(this.variablesInScope.containsKey(variableToAdd.getName())) {
             throw new CompileErrorException();
@@ -81,13 +86,18 @@ public class Method {
 
     public LocalVariable parentContainsVariable(String variableName){
         if(methodParent!=null){
-            if (methodParent.getVariablesInScope().containsValue(variableName))
+            if (methodParent.getVariablesInScope().containsKey(variableName))
                 return methodParent.getVariablesInScope().get(variableName);
             return methodParent.parentContainsVariable(variableName);
         }
         return null;
     }
 
+    /**
+     * After a scope is initialized this method checks if t is legal
+     * @param globals
+     * @throws CompileErrorException
+     */
     public void checkLegal(HashMap<String,GlobalVariable> globals) throws CompileErrorException{
         this.globals = globals;
         String lineToCheck = linesToRead.pollFirst();
@@ -108,13 +118,9 @@ public class Method {
                 throw new CompileErrorException();
     }
 
-    //if and while are inside method
-    //if final the variable cant be changed inside the method
-    //handle recursive calls
-    //different name to method
-    //no need to declare method inside another (calling a method only inside another method)
-    //aaa
-
+    public LinkedList<String> getLinesToRead() {
+        return linesToRead;
+    }
 
     @Override
     public String toString() {
