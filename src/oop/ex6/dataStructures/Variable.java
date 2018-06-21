@@ -1,4 +1,6 @@
-package oop.ex6;
+package oop.ex6.dataStructures;
+
+import oop.ex6.illegalAssignmentException;
 
 public abstract class Variable {
 
@@ -15,6 +17,7 @@ public abstract class Variable {
         this.initialization = initialized;
         this.isFinal = isFinal;
         this.name=name;
+
     }
 
     public String getType() {
@@ -70,4 +73,7 @@ public abstract class Variable {
     public int hashCode() {
         return toString().hashCode();
     }
+
+    @Override
+    public Cloneable
 }

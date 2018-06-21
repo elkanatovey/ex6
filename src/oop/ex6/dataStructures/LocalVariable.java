@@ -1,7 +1,7 @@
-package oop.ex6;
+package oop.ex6.dataStructures;
 
 
-public class LocalVariable extends  Variable {
+public class LocalVariable extends Variable {
 
     private int scope;
 
