@@ -142,7 +142,7 @@ public class regexManager {
                 if (existVar.isInitialization())
                     throw new CompileErrorException();
             }
-            //if the key exs but the existing global variable isn't initialize it ok
+            //if the key exs but the existing global variable isn't initialized it ok
             globalHashMap.put(variableName, new GlobalVariable(typeToInsert, initialization,
                     isFinal, variableName));
             //todo specificVariable[0] twice ? type is the name, therefore twice
