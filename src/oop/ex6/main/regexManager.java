@@ -28,7 +28,7 @@ public class regexManager {
     private static final String METHOD_NAME = "(\\s*[A-Za-z]\\w*\\s*)|(_\\w+\\s*)";
     private static final Pattern METHOD_PATTERN = Pattern.compile("\\s*void\\s*(([A-Za-z]\\w*\\s*)|([_]\\w+\\s*))\\s*[(](.*)[)]\\s*[{]");
     //    private static final Pattern PARAMETERS_PATTERN = Pattern.compile("\\s*\\(\\)\\s*");
-    private static final Pattern RETURN_STATEMENT_PATTERN = Pattern.compile("\\s*(return\\s*;)$");
+//    private static final Pattern RETURN_STATEMENT_PATTERN = Pattern.compile("\\s*(return\\s*;)$");
 //    private static final Pattern OPEN_STATEMENT_PATTERN = Pattern.compile("\\s*(\\{\\s*)$");
     private static final Pattern CLOSED_STATEMENT_PATTERN = Pattern.compile("\\s*(}\\s*)");
     private static final Pattern IF_PATTERN = Pattern.compile("\\s*if\\s*[(](.*)[)]\\s*[{]");
@@ -110,7 +110,10 @@ public class regexManager {
     }
 
     /**
-     * Add a single new variable to the hashmap if it is legal
+     * Add a single new variable to the hashmap if it is legal, a legal variable is formatted in the
+     * following manner: int a=1, int a; final int a; a=b is also legal if both exist, a is not final, b is
+     * initialized, and they have the same type, however such a case will not be added to the hashmap,
+     * although a will be updated to initialized.
      * @param variableToAnalyze
      * @param isFinal
      * @param globalHashMap
@@ -125,8 +128,8 @@ public class regexManager {
         int allowedLength = 2;
         if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
             throw new CompileErrorException();
-        specificVariable[0] = specificVariable[0].trim();
-        reservedKeyWordCheck(specificVariable[0]);
+        String variableName = specificVariable[0].trim();
+        reservedKeyWordCheck(variableName);
             boolean initialization = false;
             if (specificVariable.length == 2) {
                 initialization = true;
@@ -135,13 +138,14 @@ public class regexManager {
                     throw new CompileErrorException();
             } else if (isFinal)
                 throw new CompileErrorException();
-            if (globalHashMap.containsKey(specificVariable[0])) {
-                GlobalVariable existVar = globalHashMap.get(specificVariable[0]);
+            if (globalHashMap.containsKey(variableName)) {
+                GlobalVariable existVar = globalHashMap.get(variableName);
                 if (existVar.isInitialization())
                     throw new CompileErrorException();
             }
-            //if the key exs but the existing global variable isn't initialize it ok
-            globalHashMap.put(specificVariable[0], new GlobalVariable(typeToInsert, initialization, isFinal, specificVariable[0]));
+            //if the key exs but the existing global variable isn't initialized it ok
+            globalHashMap.put(variableName, new GlobalVariable(typeToInsert, initialization,
+                    isFinal, variableName));
             //todo specificVariable[0] twice ? type is the name, therefore twice
     }
 
