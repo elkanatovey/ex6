@@ -16,8 +16,11 @@ public class Method {
 
     private HashMap<String, GlobalVariable> globals;
 
-    private int scope;
+    private Method methodParent;
 
+    private HashMap<String, Method> methodHashMap;
+
+    private static final String RECURSIVE_CALL_NAME = "if/while";
 
 
     /**
@@ -26,21 +29,22 @@ public class Method {
      * @param methodName
      */
     public Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
-                  LinkedList<String> linesToRead){
+                  LinkedList<String> linesToRead, HashMap<String, Method> methodHashMap){
         this.variablesInScope = variablesInScope;
         this.methodName = methodName;
         this.linesToRead = linesToRead;
         this.globals = new HashMap<>();
-        this.scope = 0;  //default
+        this.methodHashMap = methodHashMap;
+        this.methodParent = null;  //default
     }
 
     /*
     constructor used for inner blocks
      */
     private Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
-                   LinkedList<String> linesToRead, int scope){
-        this(variablesInScope,methodName,linesToRead);
-        this.scope = this.scope +scope;
+                   LinkedList<String> linesToRead, Method methodParent){
+        this(variablesInScope,methodName,linesToRead, methodParent.methodHashMap);
+        this.methodParent = methodParent;
     }
 
 
@@ -75,6 +79,15 @@ public class Method {
         this.variablesInScope.put(variableToAdd.getName(),variableToAdd);
     }
 
+    public LocalVariable parentContainsVariable(String variableName){
+        if(methodParent!=null){
+            if (methodParent.getVariablesInScope().containsValue(variableName))
+                return methodParent.getVariablesInScope().get(variableName);
+            return methodParent.parentContainsVariable(variableName);
+        }
+        return null;
+    }
+
     public void checkLegal(HashMap<String,GlobalVariable> globals) throws CompileErrorException{
         this.globals = globals;
         String lineToCheck = linesToRead.pollFirst();
@@ -86,15 +99,11 @@ public class Method {
             lineToCheck = linesToRead.pollFirst();
             if (regexManager.) // read line and see case, if variable add-else call on new scope
                 continue;
-            HashMap<String, Variable> valuesOutOfScope = new HashMap<>();
-            for (String key: this.variablesInScope.keySet()) {
-                valuesOutOfScope.put(key, variablesInScope.get(key).);
-            }
-
-            Method method = new Method();
-            method.checkLegal(valuesOutOfScope);
+            HashMap<String, LocalVariable> valuesInOfScope = new HashMap<>();
+            Method method = new Method(valuesInOfScope,RECURSIVE_CALL_NAME,this.linesToRead,this);
+            method.checkLegal(globals);
         }
-        if (this.scope!=0)
+        if (this.methodParent!=null)
             if (linesToRead.peekFirst()==null)
                 throw new CompileErrorException();
     }
