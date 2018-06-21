@@ -9,7 +9,7 @@ public class Method {
 
     private String methodName;
 
-    private String linesToRead
+    private LinkedList<String> linesToRead;
 
     /**
      * Constructor for a method
@@ -18,12 +18,23 @@ public class Method {
      */
     public Method(HashMap<String, GlobalVariable> variablesInScope, String methodName, LinkedList<String>
             linesToRead){
+        this.variablesInScope = variablesInScope;
+        this.methodName = methodName;
+        this.linesToRead = linesToRead;
+    }
 
-        //if and while are inside method
-        //if final the variable cant be changed inside the method
-        //handle recursive calls
-        //different name to method
-        //no need to declare method inside another (calling a method only inside another method)
-        //aaa
+
+
+    //if and while are inside method
+    //if final the variable cant be changed inside the method
+    //handle recursive calls
+    //different name to method
+    //no need to declare method inside another (calling a method only inside another method)
+    //aaa
+
+
+    @Override
+    public String toString() {
+        return this.methodName;
     }
 }
