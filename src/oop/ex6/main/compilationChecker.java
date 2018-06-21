@@ -1,13 +1,14 @@
 package oop.ex6.main;
 
 import oop.ex6.CompileErrorException;
-import oop.ex6.GlobalVariable;
-import oop.ex6.Method;
+import oop.ex6.dataStructures.GlobalVariable;
+import oop.ex6.dataStructures.Method;
 
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Stack;
 
 public class compilationChecker {
 
@@ -21,22 +22,27 @@ public class compilationChecker {
      */
     public static void compileCheck(LineNumberReader fileToRead) throws CompileErrorException, IOException {
         HashMap<String,GlobalVariable> globals = new HashMap<>();
+        LinkedList<Method> methods = new Stack<>();
         String currentLine;
         int scope = 0;
         do {
             currentLine = fileToRead.readLine();
             if (regexManager.isLineIgnorable(currentLine))  // in case of a whitespace line, or comment line
                 continue;
-            scope = scope + basicLegalCheck(currentLine, scope, globals);
-
-
+            scope = scope + basicLegalCheck(currentLine, scope, globals, methods);
+            if (scope!= GLOBAL_SCOPE){
+                if (regexManager.)
+                    methods.peekLast().addLine(currentLine);
+            }
         } while (currentLine != null);
+        checkMethods(globals, methods);
     }
 
     /*
     check type of current line
      */
-    private static int basicLegalCheck(String currentLine, int scope, HashMap<String, GlobalVariable> globals)
+    private static int basicLegalCheck(String currentLine, int scope, HashMap<String, GlobalVariable>
+            globals, LinkedList<Method> methods)
             throws CompileErrorException {
         currentLine = currentLine.trim();
         char endOfLine = currentLine.charAt(currentLine.length() - 1);
@@ -65,7 +71,23 @@ public class compilationChecker {
         }
     }
 
-    private static void checkMethods(HashMap<String, GlobalVariable>, HashMap<String,Method>){
+
+
+    /*
+    Check if the current method can legally compile
+     */
+    private static void checkMethods(HashMap<String, GlobalVariable> globals, LinkedList<Method> methods)
+            throws CompileErrorException{
+        for (Method currentMethod: methods){
+            if (currentMethod.getLinesToRead().size()<2) //todo remove first line from method lines
+                throw new CompileErrorException();
+            if (currentMethod.getLinesToRead().peekLast().contentEquals("}")&&
+                    currentMethod.getLinesToRead().lastIndexOf("return;") == currentMethod.getLinesToRead()
+                            .size()-2)
+                currentMethod.checkLegal(globals);
+            else
+                throw new CompileErrorException();
+        }
 
     }
 }
