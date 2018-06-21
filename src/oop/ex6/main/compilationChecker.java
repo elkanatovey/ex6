@@ -2,6 +2,7 @@ package oop.ex6.main;
 
 import oop.ex6.CompileErrorException;
 import oop.ex6.dataStructures.GlobalVariable;
+import oop.ex6.dataStructures.LocalVariable;
 import oop.ex6.dataStructures.Method;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class compilationChecker {
      */
     public static void compileCheck(LineNumberReader fileToRead) throws CompileErrorException, IOException {
         HashMap<String,GlobalVariable> globals = new HashMap<>();
-        LinkedList<Method> methods = new Stack<>();
+        LinkedList<Method> methods = new LinkedList<>();
         String currentLine;
         int scope = 0;
         do {
@@ -31,8 +32,7 @@ public class compilationChecker {
                 continue;
             scope = scope + basicLegalCheck(currentLine, scope, globals, methods);
             if (scope!= GLOBAL_SCOPE){
-                if (regexManager.)
-                    methods.peekLast().addLine(currentLine);
+                    methods.peekLast().addLine(currentLine.trim());
             }
         } while (currentLine != null);
         checkMethods(globals, methods);
@@ -52,18 +52,16 @@ public class compilationChecker {
                     regexManager.isValidGlobalVariable(currentLine, globals);
                     return 0;
                 }
-                regexManager.  //
             case '{':
                 if (scope==GLOBAL_SCOPE) {
-                    regexManager.isValidParameterVariable(currentLine,);
-                    regexManager.
+                    HashMap<String, LocalVariable> currentLocals = new HashMap<>();
+                    regexManager.isValidParameterVariable(currentLine, methods,currentLocals);
                 }
                 regexManager.isIfStatement(currentLine);
-                regexManager.isWhileStatement(currentLine);
                 return 1;
             case '}':
-                if (scope==GLOBAL_SCOPE+1)
-                    //check for return
+                if (scope<=GLOBAL_SCOPE)
+                    throw new CompileErrorException();
                 return -1;
             default: {
                 throw new CompileErrorException();
