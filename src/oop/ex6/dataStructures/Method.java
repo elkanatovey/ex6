@@ -22,6 +22,8 @@ public class Method {
 
     private static final String RECURSIVE_CALL_NAME = "if/while";
 
+    private String[] methodParameters;
+
 
     /**
      * Constructor for a method
@@ -29,21 +31,27 @@ public class Method {
      * @param methodName
      */
     public Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
-                  LinkedList<String> linesToRead, LinkedList<Method> methodLinkedList){
+                  LinkedList<String> linesToRead, LinkedList<Method> methodLinkedList,
+                  LinkedList<String> methodParameters){
         this.variablesInScope = variablesInScope;
         this.methodName = methodName;
         this.linesToRead = linesToRead;
         this.globals = new HashMap<>();
         this.methodLinkedList = methodLinkedList;
         this.methodParent = null;  //default
+        this.methodParameters = (String[]) methodParameters.toArray();
+    }
+
+    public String[] getMethodParameters() {
+        return methodParameters;
     }
 
     /*
-    constructor used for inner blocks
-     */
+        constructor used for inner blocks
+         */
     private Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
                    LinkedList<String> linesToRead, Method methodParent){
-        this(variablesInScope,methodName,linesToRead, methodParent.methodLinkedList);
+        this(variablesInScope,methodName,linesToRead, methodParent.methodLinkedList,null);
         this.methodParent = methodParent;
     }
 
@@ -84,12 +92,33 @@ public class Method {
         this.variablesInScope.put(variableToAdd.getName(),variableToAdd);
     }
 
-    public LocalVariable parentContainsVariable(String variableName){
+    /**
+     * Checks if a variable exists within any of the relevant scopes
+     * @param variableName
+     * @return
+     */
+    public LocalVariable suchaVariableExists(String variableName){
+        if (variablesInScope.containsKey(variableName))
+            return variablesInScope.get(variableName);
         if(methodParent!=null){
             if (methodParent.getVariablesInScope().containsKey(variableName))
                 return methodParent.getVariablesInScope().get(variableName);
-            return methodParent.parentContainsVariable(variableName);
+            return methodParent.suchaVariableExists(variableName);
         }
+        if (globals.containsKey(variableName))
+            return new LocalVariable(globals.get(variableName).getType(),globals.get(variableName).isInitialization(),
+                    globals.get(variableName).isFinal(),variableName);
+        return null;
+    }
+
+    /**
+     * returns a given variable iff it exists, else returns null
+     * @param variableName
+     * @return
+     */
+    public LocalVariable getLocalVariable(String variableName){
+        if (variablesInScope.containsKey(variableName))
+            return variablesInScope.get(variableName);
         return null;
     }
 
@@ -107,7 +136,7 @@ public class Method {
             if (previousLine.contentEquals("}"))  // if we closed the block
                 break;
             lineToCheck = linesToRead.pollFirst();
-            if (regexManager.) // read line and see case, if variable add-else call on new scope
+            if (regexManager.innerLineCheck(lineToCheck,this)) // read line and see case, if variable add-else call on new scope
                 continue;
             HashMap<String, LocalVariable> valuesInOfScope = new HashMap<>();
             Method method = new Method(valuesInOfScope,RECURSIVE_CALL_NAME,this.linesToRead,this);
