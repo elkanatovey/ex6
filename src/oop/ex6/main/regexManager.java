@@ -1,9 +1,11 @@
 package oop.ex6.main;
 
 import oop.ex6.*;
+import oop.ex6.dataStructures.GlobalVariable;
+import oop.ex6.dataStructures.LocalVariable;
+import oop.ex6.dataStructures.Method;
+import oop.ex6.dataStructures.Variable;
 
-import java.lang.reflect.Array;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.regex.*;
