@@ -17,6 +17,7 @@ public abstract class Variable {
         this.initialization = initialized;
         this.isFinal = isFinal;
         this.name=name;
+
     }
 
     public String getType() {
@@ -72,4 +73,7 @@ public abstract class Variable {
     public int hashCode() {
         return toString().hashCode();
     }
+
+    @Override
+    public Cloneable
 }

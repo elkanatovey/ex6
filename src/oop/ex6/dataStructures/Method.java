@@ -1,5 +1,6 @@
 package oop.ex6.dataStructures;
 
+import oop.ex6.main.regexManager;
 import oop.ex6.CompileErrorException;
 
 import java.util.HashMap;
@@ -15,6 +16,8 @@ public class Method {
 
     private HashMap<String, GlobalVariable> globals;
 
+    private int scope;
+
 
 
     /**
@@ -28,16 +31,18 @@ public class Method {
         this.methodName = methodName;
         this.linesToRead = linesToRead;
         this.globals = new HashMap<>();
+        this.scope = 0;  //default
     }
 
     /*
-    used when analyzing inner blocks
+    constructor used for inner blocks
      */
     private Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
-                   LinkedList<String> linesToRead,HashMap<String, GlobalVariable> globals ){
-        this(variablesInScope,methodName, linesToRead);
-        this.globals = globals;
+                   LinkedList<String> linesToRead, int scope){
+        this(variablesInScope,methodName,linesToRead);
+        this.scope = this.scope +scope;
     }
+
 
     /**
      * Check if a method has been declared
@@ -70,8 +75,28 @@ public class Method {
         this.variablesInScope.put(variableToAdd.getName(),variableToAdd);
     }
 
-    public void checkLegal() throws CompileErrorException{
+    public void checkLegal(HashMap<String,GlobalVariable> globals) throws CompileErrorException{
+        this.globals = globals;
+        String lineToCheck = linesToRead.pollFirst();
+        String previousLine = lineToCheck;
+        while (lineToCheck!=null) {
+            previousLine = lineToCheck;
+            if (previousLine.contentEquals("}"))  // if we closed the block
+                break;
+            lineToCheck = linesToRead.pollFirst();
+            if (regexManager.) // read line and see case, if variable add-else call on new scope
+                continue;
+            HashMap<String, Variable> valuesOutOfScope = new HashMap<>();
+            for (String key: this.variablesInScope.keySet()) {
+                valuesOutOfScope.put(key, variablesInScope.get(key).);
+            }
 
+            Method method = new Method();
+            method.checkLegal(valuesOutOfScope);
+        }
+        if (this.scope!=0)
+            if (linesToRead.peekFirst()==null)
+                throw new CompileErrorException();
     }
 
     //if and while are inside method
