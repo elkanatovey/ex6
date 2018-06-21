@@ -109,7 +109,10 @@ public class regexManager {
     }
 
     /**
-     * Add a single new variable to the hashmap if it is legal
+     * Add a single new variable to the hashmap if it is legal, a legal variable is formatted in the
+     * following manner: int a=1, int a; final int a; a=b is also legal if both exist, a is not final, b is
+     * initialized, and they have the same type, however such a case will not be added to the hashmap,
+     * although a will be updated to initialized.
      * @param variableToAnalyze
      * @param isFinal
      * @param globalHashMap
@@ -124,8 +127,8 @@ public class regexManager {
         int allowedLength = 2;
         if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
             throw new CompileErrorException();
-        specificVariable[0] = specificVariable[0].trim();
-        reservedKeyWordCheck(specificVariable[0]);
+        String variableName = specificVariable[0].trim();
+        reservedKeyWordCheck(variableName);
             boolean initialization = false;
             if (specificVariable.length == 2) {
                 initialization = true;
@@ -134,13 +137,14 @@ public class regexManager {
                     throw new CompileErrorException();
             } else if (isFinal)
                 throw new CompileErrorException();
-            if (globalHashMap.containsKey(specificVariable[0])) {
-                GlobalVariable existVar = globalHashMap.get(specificVariable[0]);
+            if (globalHashMap.containsKey(variableName)) {
+                GlobalVariable existVar = globalHashMap.get(variableName);
                 if (existVar.isInitialization())
                     throw new CompileErrorException();
             }
             //if the key exs but the existing global variable isn't initialize it ok
-            globalHashMap.put(specificVariable[0], new GlobalVariable(typeToInsert, initialization, isFinal, specificVariable[0]));
+            globalHashMap.put(variableName, new GlobalVariable(typeToInsert, initialization,
+                    isFinal, variableName));
             //todo specificVariable[0] twice ? type is the name, therefore twice
     }
 
@@ -365,54 +369,6 @@ public class regexManager {
 //            lineToRead = lineToRead.replaceFirst("final", "");
     }
 
-    //        String[] specificVariable = variableToAnalyze.split(",");
-//        //todo split the param by comma
-//        boolean isFinal = finalHandle(lineToRead);
-//        if (isFinal)
-//            lineToRead = lineToRead.replaceFirst("final", "");
-////        Matcher validVariableWithNoTypeMatcher = VAR_TO_VAR_PATTERN.matcher(lineToRead);
-////        //pattern to match a specific case a=b without type
-////        if (validVariableWithNoTypeMatcher.matches()){
-////            if(AssignVariableToVariable(lineToRead,globalHashMap))
-////                return;
-////            //todo check
-////        }
-//        String typeTuple[] = typeChecker(lineToRead);
-//        String typeToInsert = typeTuple[0], variables = typeTuple[1];
-//
-//        String[] allVariables = illegalCommaChecker(variables);
-//        for (String variableToAnalyze : allVariables) {
-//            String[] specificVariable = variableToAnalyze.split("=");
-//            int allowedLength = 2;
-//            if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
-//                throw new CompileErrorException();
-//            specificVariable[0] = specificVariable[0].trim();
-//            Matcher validVariableMatcher = VARIABLE_NAME_PATTERN.matcher(specificVariable[0]);
-//            if (validVariableMatcher.matches()) {
-//                Matcher reservedKeyMatches = RESERVED_KEYWORDS_PATTERN.matcher(specificVariable[0]); // check that the variable isn't a reserved word
-//                if (reservedKeyMatches.matches()) {
-//                    throw new CompileErrorException();  // illegal variable name
-//                }
-//                boolean initialization = false;
-//                if (specificVariable.length == 2) {
-//                    initialization = true;
-//                    if (!checkLegalAssignment(specificVariable[1], typeToInsert, globalHashMap)) //check the the type is legal
-//                        throw new CompileErrorException();
-//                } else if (isFinal)
-//                    throw new CompileErrorException();
-//                if (globalHashMap.containsKey(specificVariable[0])) {
-//                    GlobalVariable existVar = globalHashMap.get(specificVariable[0]);
-//                    if (existVar.isInitialization())
-//                        throw new CompileErrorException();
-//                }
-//                //if the key exs but the existing global variable isn't initialize it ok
-//                globalHashMap.put(specificVariable[0], new GlobalVariable(typeToInsert, initialization, isFinal, specificVariable[0]));
-//            } else
-//                throw new CompileErrorException();
-//        }
-////        return globals;
-//    }
-//
     public static String methodChecker(String lineToRead) throws CompileErrorException {
         Matcher methodMatches = METHOD_PATTERN.matcher(lineToRead); //check the case "void func(){" with spaces
         if (!methodMatches.matches()) {
