@@ -1,5 +1,7 @@
-package oop.ex6;
+package oop.ex6.dataStructures;
 
+
+import oop.ex6.dataStructures.Variable;
 
 public class GlobalVariable extends Variable {
 
