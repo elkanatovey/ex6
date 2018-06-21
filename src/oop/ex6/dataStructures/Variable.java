@@ -74,6 +74,5 @@ public abstract class Variable {
         return toString().hashCode();
     }
 
-    @Override
-    public Cloneable
+
 }
