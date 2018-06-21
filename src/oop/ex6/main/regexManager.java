@@ -1,9 +1,6 @@
 package oop.ex6.main;
 
-import oop.ex6.CompileErrorException;
-import oop.ex6.GlobalVariable;
-import oop.ex6.Method;
-import oop.ex6.Variable;
+import oop.ex6.*;
 
 import java.lang.reflect.Array;
 import java.util.Collections;
@@ -20,6 +17,7 @@ public class regexManager {
 //    private static final String START_OF_BLOCK = "({\\s*$)";
 //    private static final String ENDS_WITH_COMMA = ";\\s*$";
     private static final String FINAL_STATEMENT = ("\\s*(final\\s+.*)");
+    private static String conditionStatement = "(true|false|-?[\\d]+|-?([\\d]+.[\\d]+)|(\\s*[A-Za-z]\\w*?_*\\s*)|(_\\w+))";
     private static final Pattern SPACE_PATTERN = Pattern.compile("^\\s*$");
     private static final Pattern BACKSLASH_PATTERN = Pattern.compile("^\\/\\/.*");
     private static final Pattern VARIABLE_NAME_PATTERN = Pattern.compile("(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
@@ -33,7 +31,11 @@ public class regexManager {
     private static final Pattern CLOSED_STATEMENT_PATTERN = Pattern.compile("\\s*(}\\s*)");
     private static final Pattern IF_PATTERN = Pattern.compile("\\s*if\\s*[(](.*)[)]\\s*[{]");
     private static final Pattern WHILE_PATTERN = Pattern.compile("\\s*while\\s*[(](.*)[)]\\s*[{]");
-    private static final Pattern CONDITION_PATTERN = Pattern.compile("\\s*((int|double|boolean|char|String)\\s+).*(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
+    private static final Pattern VAR_CONDITION_PATTERN = Pattern.compile("\\s*((int|double|boolean|char|String)\\s+).*(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
+    //private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = Pattern.compile("((\\s*\\D\\w*?_*\\s*)|(_\\w+))\\s*(&&|\\|\\|\\s*\\D*)((\\w+\\s*)|(_\\w+))");
+    private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = Pattern.compile("" + conditionStatement + "(([|]{2}|[&]{2})" + conditionStatement + ")*");
+    private static final Pattern CONDITIONS_OR_AND_PATTERN = Pattern.compile(".*&&.*|\\|\\|\\.*");
+    private static final Pattern CONDITIONS_INT_DOUBLE_PATTERN = Pattern.compile("([+'-]?\\d*\\.?\\d+)|(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
     private static final Pattern FINAL_STATEMENT_PATTERN
             = Pattern.compile("\\s*(final\\s*)\\s+((int|double|boolean|char|String)\\s+.*)$");
     //check if before final there spaces
@@ -104,7 +106,7 @@ public class regexManager {
         String typeToInsert = typeTuple[0], variables = typeTuple[1];
         String[] allVariables = illegalCommaChecker(variables);
         for (String variableToAnalyze : allVariables) {
-            addSingleVariable(variableToAnalyze, isFinal,globalHashMap, typeToInsert);
+            addSingleVariable(variableToAnalyze, isFinal, globalHashMap, typeToInsert);
         }
 //        return globals;
     }
@@ -114,6 +116,7 @@ public class regexManager {
      * following manner: int a=1, int a; final int a; a=b is also legal if both exist, a is not final, b is
      * initialized, and they have the same type, however such a case will not be added to the hashmap,
      * although a will be updated to initialized.
+     *
      * @param variableToAnalyze
      * @param isFinal
      * @param globalHashMap
@@ -130,26 +133,29 @@ public class regexManager {
             throw new CompileErrorException();
         String variableName = specificVariable[0].trim();
         reservedKeyWordCheck(variableName);
-            boolean initialization = false;
-            if (specificVariable.length == 2) {
-                initialization = true;
-                if (!checkLegalAssignment(specificVariable[1], typeToInsert, globalHashMap))
-                    //check the the type is legal
-                    throw new CompileErrorException();
-            } else if (isFinal)
+        boolean initialization = false;
+        if (specificVariable.length == 2) {
+            initialization = true;
+            if (!checkLegalAssignment(specificVariable[1], typeToInsert, globalHashMap))
+                //check the the type is legal
                 throw new CompileErrorException();
-            if (globalHashMap.containsKey(variableName)) {
-                GlobalVariable existVar = globalHashMap.get(variableName);
-                if (existVar.isInitialization())
-                    throw new CompileErrorException();
-            }
-            //if the key exs but the existing global variable isn't initialized it ok
-            globalHashMap.put(variableName, new GlobalVariable(typeToInsert, initialization,
-                    isFinal, variableName));
-            //todo specificVariable[0] twice ? type is the name, therefore twice
+        } else if (isFinal)
+            throw new CompileErrorException();
+        if (globalHashMap.containsKey(variableName)) {
+            GlobalVariable existVar = globalHashMap.get(variableName);
+            if (existVar.isInitialization())
+                throw new CompileErrorException();
+        }
+        //if the key exs but the existing global variable isn't initialized it ok
+        globalHashMap.put(variableName, new GlobalVariable(typeToInsert, initialization,
+                isFinal, variableName));
+        //todo specificVariable[0] twice ? type is the name, therefore twice
     }
 
 
+    /*
+    checks that a given variable name is legal, if is illegal throws an exception
+     */
     private static void reservedKeyWordCheck(String stringToCheck) throws CompileErrorException {
         Matcher validVariableMatcher = VARIABLE_NAME_PATTERN.matcher(stringToCheck);
         if (validVariableMatcher.matches()) {
@@ -160,6 +166,7 @@ public class regexManager {
             }
         } else
             throw new CompileErrorException();
+
     }
 
 
@@ -327,7 +334,7 @@ public class regexManager {
             String type = variableInHash.getType();
             if (variableInHash.isFinal())
                 throw new CompileErrorException();
-            if(checkLegalAssignment(AssignmentToCheck, type, variables)) {
+            if (checkLegalAssignment(AssignmentToCheck, type, variables)) {
                 variables.get(variable).setInitialization(true);
                 return true;
             }
@@ -345,26 +352,29 @@ public class regexManager {
      * @throws CompileErrorException
      */
     public static void isValidParameterVariable
-    (String lineToRead, HashMap<String, Method> methodHashMap) throws CompileErrorException {
+    (String lineToRead, HashMap<String, Method> methodHashMap, HashMap<String, LocalVariable> localHashMap) throws CompileErrorException {
         lineToRead = lineToRead.trim();
 //        if (lineToRead.endsWith(";"))
 //            lineToRead = lineToRead.substring(0, lineToRead.length() - 1);
         //var to analyze are inside ()
-        String parameters = methodChecker(lineToRead);
+        String parameters = methodPatternChecker(lineToRead)[0];
+        String methodName = methodPatternChecker(lineToRead)[1];
         String[] parametersList = parameters.split(",");
         for (String specificParameter : parametersList) {
-            Matcher validVariableMatcher = VARIABLE_NAME_PATTERN.matcher(specificParameter);
-            if (!validVariableMatcher.matches())
-                throw new CompileErrorException();
-            Matcher reservedKeyMatches = RESERVED_KEYWORDS_PATTERN.matcher(specificParameter); // check that the variable isn't a reserved word
-            if (reservedKeyMatches.matches()) {
-                throw new CompileErrorException();  // illegal variable name
-            }
+            String typeTuple[] = typeChecker(specificParameter);
+            String typeToInsert = typeTuple[0], variableName = typeTuple[1];
+            reservedKeyWordCheck(variableName);
             boolean isFinal = finalHandle(specificParameter);
             if (isFinal)
                 specificParameter = specificParameter.replaceFirst("final", "");
-            String typeTuple[] = typeChecker(specificParameter);
-            String typeToInsert = typeTuple[0], variable = typeTuple[1];
+            //means that the variable cant be changed inside the function
+            LocalVariable localVar = new LocalVariable(typeToInsert, true, isFinal, variableName);
+            if (localHashMap.containsKey(variableName))//check a local variable is not in the hash
+                throw new CompileErrorException();
+            localHashMap.put(variableName, localVar); //add the local variable (parameters) of a method
+            LinkedList<String> linkedList = new LinkedList<String>();
+            Method method = new Method(localHashMap, methodName, linkedList, methodHashMap);
+            methodHashMap.put(methodName, method);
 
 
 //            methodHashMap.put(typeToInsert, new Method(typeToInsert, isFinal, variable));
@@ -423,15 +433,20 @@ public class regexManager {
 ////        return globals;
 //    }
 //
-    public static String methodChecker(String lineToRead) throws CompileErrorException {
+    public static String[] methodPatternChecker(String lineToRead) throws CompileErrorException {
+        lineToRead = lineToRead.trim();
         Matcher methodMatches = METHOD_PATTERN.matcher(lineToRead); //check the case "void func(){" with spaces
         if (!methodMatches.matches()) {
             throw new CompileErrorException();
         }
-        return methodMatches.group(4);
+        String parameters = methodMatches.group(4);
+        String methodName = methodMatches.group(1);
+        return new String[]{parameters, methodName};
     }
 
+
     public static String isIfStatement(String lineToRead) throws CompileErrorException {
+        lineToRead = lineToRead.trim();
         Matcher ifMatcher = IF_PATTERN.matcher(lineToRead); //check the case "if(){" with spaces
         if (!ifMatcher.matches()) {
             throw new CompileErrorException();
@@ -440,6 +455,7 @@ public class regexManager {
     }
 
     public static String isWhileStatement(String lineToRead) throws CompileErrorException {
+        lineToRead = lineToRead.trim();
         Matcher whileMatcher = WHILE_PATTERN.matcher(lineToRead); //check the case "while(){" with spaces
         if (!whileMatcher.matches()) {
             throw new CompileErrorException();
@@ -447,19 +463,49 @@ public class regexManager {
         return whileMatcher.group(1); //returns the statement inside while
     }
 
-    public static String checkConditionInsideWhileIf(String lineToRead,String condition) throws CompileErrorException {
+    public static String checkConditionInsideWhileIf(String lineToRead, String condition, HashMap<String, LocalVariable> variablesToCheck) throws CompileErrorException {
         String conditionIf = isIfStatement(lineToRead);
         String conditionWhile = isWhileStatement(lineToRead);
-        Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(lineToRead); //check if there is false\true statement
+        Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(lineToRead); //condition : (true\false)
         if (booleanMatcher.matches()) {
             return condition;
         }
-        Matcher booleanVarMatcher = CONDITION_PATTERN.matcher(lineToRead);
-        if(booleanMatcher.matches()){
-            reservedKeyWordCheck(lineToRead);
+        Matcher intDoubleMatcher = CONDITIONS_INT_DOUBLE_PATTERN.matcher(lineToRead); //condition : (5)
+        if (intDoubleMatcher.matches())
+            return condition;
+        Matcher booleanVarMatcher = VARIABLE_NAME_PATTERN.matcher(lineToRead); //condition : (a)
+        if (booleanVarMatcher.matches()) {
+            if(condiotnCaseVariable(lineToRead,variablesToCheck))
+                return condition;
+
         }
+        Matcher orAndMatcher = CONDITIONS_VAR_OR_AND_PATTERN.matcher(lineToRead); //condition : (a||b && c)
+            if (orAndMatcher.matches()) {
+                String[] conditionParameters = lineToRead.split("([|]{2}|[&]{2})");
+                for(String param:conditionParameters)
+                    condiotnCaseVariable(param,variablesToCheck);
 
 
+            }
+            return condition;
         }
+        //todo check the pattern
+
+
     }
+
+    //*check the case if(a) when a is a variable*/
+    private static boolean condiotnCaseVariable(String lineToRead, HashMap<String, LocalVariable> variablesToCheck) throws CompileErrorException {
+        reservedKeyWordCheck(lineToRead);
+        if (variablesToCheck.containsKey(lineToRead)) {
+            LocalVariable varInHash = variablesToCheck.get(lineToRead);
+            String typeToCheck = varInHash.getType();
+            if (typeToCheck == "boolean" | typeToCheck == "int" || typeToCheck == "double") {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }
