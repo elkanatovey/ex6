@@ -10,50 +10,54 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.regex.*;
 
+import static java.util.regex.Pattern.compile;
+
 public class regexManager {
 
     private static final String INT = "int", DOUBLE = "double", STRING = "String", BOOLEAN = "boolean", CHAR = "char";
-    //    private static final String ONLY_SPACES_IN_LINE = "^\\s*$";
-//    private static final String STARTS_WITH_BACKSLASH = "^\\/\\/.*";
-//    private static final String END_OF_BLOCK = "(}\\s*$)";
-//    private static final String START_OF_BLOCK = "({\\s*$)";
-//    private static final String ENDS_WITH_COMMA = ";\\s*$";
+    private static final Pattern CALL_METHOD =
+            compile("\\s*\\s*[a-zA-Z]\\w*\\s*\\s*\\(\\s*((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)?|" +
+                    "((\\s*\\s*((([^,=\\s])+)|" +
+                    "(\".*\"))\\s*\\s*)(\\s*,\\s*\\s*((([^,=\\s])+)|" +
+                    "(\".*\"))\\s*\\s*)*)\\s*)\\s*\\)\\s*;\\s*");
     private static final String FINAL_STATEMENT = ("\\s*(final\\s+.*)");
     private static String conditionStatement = "(true|false|-?[\\d]+|-?([\\d]+.[\\d]+)|(\\s*[A-Za-z]\\w*?_*\\s*)|(_\\w+))";
-    private static final Pattern SPACE_PATTERN = Pattern.compile("^\\s*$");
-    private static final Pattern BACKSLASH_PATTERN = Pattern.compile("^\\/\\/.*");
-    private static final Pattern VARIABLE_NAME_PATTERN = Pattern.compile("(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
+    private static final Pattern SPACE_PATTERN = compile("^\\s*$");
+    private static final Pattern BACKSLASH_PATTERN = compile("^\\/\\/.*");
+    private static final Pattern VARIABLE_NAME_PATTERN = compile("(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
     //    private static final Pattern METHOD_NAME_PATTERN = Pattern.compile("(\\s*[A-Za-z]\\w*\\w*\\s*)|(_\\w+)");
 //    private static final String METHOD_PARAMETERS = "(\\(\\))";
     private static final String METHOD_NAME = "(\\s*[A-Za-z]\\w*\\s*)|(_\\w+\\s*)";
-    private static final Pattern METHOD_PATTERN = Pattern.compile("\\s*void\\s*(([A-Za-z]\\w*\\s*)|([_]\\w+\\s*))\\s*[(](.*)[)]\\s*[{]");
+    private static final Pattern METHOD_PATTERN = compile("\\s*void\\s*(([A-Za-z]\\w*\\s*)|([_]\\w+\\s*))" +
+            "\\s*[(](.*)[)]\\s*[{]");
     //    private static final Pattern PARAMETERS_PATTERN = Pattern.compile("\\s*\\(\\)\\s*");
-    private static final Pattern RETURN_STATEMENT_PATTERN = Pattern.compile("\\s*(return\\s*;\\s*)$");
+    private static final Pattern RETURN_STATEMENT_PATTERN = compile("\\s*(return\\s*;\\s*)$");
 //    private static final Pattern OPEN_STATEMENT_PATTERN = Pattern.compile("\\s*(\\{\\s*)$");
-    private static final Pattern CLOSED_STATEMENT_PATTERN = Pattern.compile("\\s*(}\\s*)");
-    private static final Pattern IF_WHILE_PATTERN = Pattern.compile("\\s*(if|while)\\s*[(](.*)[)]\\s*[{]");
+    private static final Pattern CLOSED_STATEMENT_PATTERN = compile("\\s*(}\\s*)");
+    private static final Pattern IF_WHILE_PATTERN = compile("\\s*(if|while)\\s*[(](.*)[)]\\s*[{]");
     //    private static final Pattern WHILE_PATTERN = Pattern.compile("\\s*while\\s*[(](.*)[)]\\s*[{]");
-    private static final Pattern VAR_CONDITION_PATTERN = Pattern.compile("\\s*((int|double|boolean|char|String)\\s+).*(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
+    private static final Pattern VAR_CONDITION_PATTERN = compile("\\s*((int|double|boolean|char|String)\\s+).*(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
     //private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = Pattern.compile("((\\s*\\D\\w*?_*\\s*)|(_\\w+))\\s*(&&|\\|\\|\\s*\\D*)((\\w+\\s*)|(_\\w+))");
-    private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = Pattern.compile("" + conditionStatement + "(([|]{2}|[&]{2})" + conditionStatement + ")*"); //todo check
-    private static final Pattern CONDITIONS_OR_AND_PATTERN = Pattern.compile(".*&&.*|\\|\\|\\.*");
-    private static final Pattern CONDITIONS_INT_DOUBLE_PATTERN = Pattern.compile("([+'-]?\\d*\\.?\\d+)|(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
+    private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = compile("" + conditionStatement + "(([|]{2}|[&]{2})" + conditionStatement + ")*"); //todo check
+    private static final Pattern CONDITIONS_OR_AND_PATTERN = compile(".*&&.*|\\|\\|\\.*");
+    private static final Pattern CONDITIONS_INT_DOUBLE_PATTERN = compile("([+'-]?\\d*\\.?\\d+)|(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
     private static final Pattern FINAL_STATEMENT_PATTERN
-            = Pattern.compile("\\s*(final\\s*)\\s+((int|double|boolean|char|String)\\s+.*)$");
+            = compile("\\s*(final\\s*)\\s+((int|double|boolean|char|String)\\s+.*)$");
     //check if before final there spaces
-    private static final Pattern TYPE_PATTERN = Pattern.compile("\\s*((int|double|boolean|char|String)\\s+).*");
-    private static final Pattern FINAL_PATTERN = Pattern.compile(FINAL_STATEMENT);
-    private static final Pattern COMMA_PATTERN = Pattern.compile(".*,\\s*(,).*");
+    private static final Pattern TYPE_PATTERN = compile("\\s*((int|double|boolean|char|String)\\s+).*");
+    private static final Pattern FINAL_PATTERN = compile(FINAL_STATEMENT);
+    private static final Pattern COMMA_PATTERN = compile(".*,\\s*(,).*");
     private static final String RESERVED_KEYWORDS =
             "((\\w*\\s+)|\\s*)((int|double|boolean|char|String|void|final|if|while|true|false|return)\\s+.*)";
-    private static final Pattern RESERVED_KEYWORDS_PATTERN = Pattern.compile(RESERVED_KEYWORDS);
-    private static final Pattern INT_PATTERN = Pattern.compile("(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
-    private static final Pattern DOUBLE_PATTERN = Pattern.compile("[+'-]?\\d*\\.?\\d+");
-    private static final Pattern STRING_PATTERN = Pattern.compile("\\s*\".*(.*)+\\s*.*\"\\s*"); //how to add ""
-    private static final Pattern BOOLEAN_PATTERN = Pattern.compile(".\\s+(true|false)\\s+.");
-    private static final Pattern EQULE_COMMA_PATTERN = Pattern.compile("\\w*((=)|,)\\s*");
-    private static final Pattern CHAR_PATTERN = Pattern.compile("'.'"); //no spaces inside
-    private static final Pattern VAR_TO_VAR_PATTERN = Pattern.compile("(\\s*\\D\\w*\\s*=\\D\\w*)|(\\s*\\D\\w*\\s*=\\d\\s*)"); //a=b or a=5 without type
+    private static final Pattern RESERVED_KEYWORDS_PATTERN = compile(RESERVED_KEYWORDS);
+    private static final Pattern INT_PATTERN = compile("(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
+    private static final Pattern DOUBLE_PATTERN = compile("[+'-]?\\d*\\.?\\d+");
+    private static final Pattern STRING_PATTERN = compile("\\s*\".*(.*)+\\s*.*\"\\s*"); //how to add ""
+    private static final Pattern BOOLEAN_PATTERN = compile(".\\s+(true|false)\\s+.");
+    private static final Pattern EQULE_COMMA_PATTERN = compile("\\w*((=)|,)\\s*");
+    private static final Pattern CHAR_PATTERN = compile("'.'"); //no spaces inside
+    private static final Pattern VAR_TO_VAR_PATTERN = compile("(\\s*\\D\\w*\\s*=\\D\\w*)|" +
+                                                                       "(\\s*\\D\\w*\\s*=\\d\\s*)"); //a=b or a=5 without type
 
 
     /**
@@ -464,10 +468,13 @@ public class regexManager {
                 Matcher returnMatcher = RETURN_STATEMENT_PATTERN.matcher(lineToRead);
                 if(returnMatcher.matches())
                     return true;
+                Matcher methodCallMatcher = CALL_METHOD.matcher(lineToRead);
+                if (methodCallMatcher.matches()){// match group 1
 
-
-
-
+                }
+                //a=b matcher
+                //int a; matcher
+                //int a=b; matcher
 
             case '{':
                 checkConditionInsideWhileIf(isIfStatement(lineToRead), method);
