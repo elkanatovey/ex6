@@ -22,7 +22,9 @@ public class Method {
 
     private static final String RECURSIVE_CALL_NAME = "if/while";
 
-    private String[] methodParameters;
+    private String[] methodParametersType;
+
+    private static  LinkedList<String> emptyList;
 
 
     /**
@@ -32,18 +34,18 @@ public class Method {
      */
     public Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
                   LinkedList<String> linesToRead, LinkedList<Method> methodLinkedList,
-                  LinkedList<String> methodParameters){
+                  LinkedList<String> methodParametersType){
         this.variablesInScope = variablesInScope;
         this.methodName = methodName;
         this.linesToRead = linesToRead;
         this.globals = new HashMap<>();
         this.methodLinkedList = methodLinkedList;
         this.methodParent = null;  //default
-        this.methodParameters = (String[]) methodParameters.toArray();
+        this.methodParametersType = (String[]) methodParametersType.toArray();
     }
 
-    public String[] getMethodParameters() {
-        return methodParameters;
+    public String[] getMethodParametersType() {
+        return methodParametersType;
     }
 
     /*
@@ -51,21 +53,23 @@ public class Method {
          */
     private Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
                    LinkedList<String> linesToRead, Method methodParent){
-        this(variablesInScope,methodName,linesToRead, methodParent.methodLinkedList,null);
+
+        this(variablesInScope,methodName,linesToRead, methodParent.methodLinkedList, emptyList);
         this.methodParent = methodParent;
     }
 
 
     /**
      * Check if a method has been declared
-     * @param methodName
-     * @param legalMethods
+     * @param methodName method name to check
      * @return
      */
-    public static boolean isLegalMethod(Method methodName, LinkedList<Method> legalMethods){
-        if(legalMethods.contains(methodName))
-            return true;
-        return false;
+    public Method isLegalMethod(String methodName){
+        for (Method currentMethod: methodLinkedList){
+            if (currentMethod.getMethodName().equals(methodName))
+                return currentMethod;
+        }
+        return null;
     }
 
     public void addLine(String lineToAdd){  // adds a new line to the method
@@ -97,13 +101,13 @@ public class Method {
      * @param variableName
      * @return
      */
-    public LocalVariable suchaVariableExists(String variableName){
+    public LocalVariable suchVariableExists(String variableName){
         if (variablesInScope.containsKey(variableName))
             return variablesInScope.get(variableName);
         if(methodParent!=null){
             if (methodParent.getVariablesInScope().containsKey(variableName))
                 return methodParent.getVariablesInScope().get(variableName);
-            return methodParent.suchaVariableExists(variableName);
+            return methodParent.suchVariableExists(variableName);
         }
         if (globals.containsKey(variableName))
             return new LocalVariable(globals.get(variableName).getType(),globals.get(variableName).isInitialization(),
