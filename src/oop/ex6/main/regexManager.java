@@ -110,7 +110,7 @@ public class regexManager {
         }
         String typeTuple[] = typeChecker(lineToRead);
         String typeToInsert = typeTuple[0], variables = typeTuple[1];
-        String[] allVariables = illegalCommaChecker(variables);
+        String[] allVariables = illegalCommaEqualsChecker(variables);
         for (String variableToAnalyze : allVariables) {
             addSingleVariable(variableToAnalyze, isFinal, globalHashMap, typeToInsert);
         }
@@ -235,10 +235,10 @@ public class regexManager {
 
 
     /**
-     * Receive variable name, type, and assignment to the variable. Checks if the assignment is an existing variable
+     * Receive variable name, type, and assignment to the variable. Checks if the assignment is an existing
+     * variable
      * that we can use to assign. For example a=b, checks if b is a valid assignment for a. (does not check
      * if a is final!!!!)
-     *
      * @param AssignmentToCheck the name of a possible variable (in our case above b)
      * @param type              the type of the current variable (in our case above a)
      * @param variablesToCheck  a hashmap of existing variables
@@ -297,7 +297,7 @@ public class regexManager {
      * @return the split list
      * @throws CompileErrorException
      */
-    private static String[] illegalCommaChecker(String variables) throws CompileErrorException {
+    private static String[] illegalCommaEqualsChecker(String variables) throws CompileErrorException {
         Matcher illegalCommaCheck = COMMA_PATTERN.matcher(variables);  // edge case ",,"
         if (illegalCommaCheck.matches())
             throw new CompileErrorException();
@@ -333,7 +333,7 @@ public class regexManager {
      */
     private static boolean AssignVariableToVariable(String currentLine, HashMap<String, GlobalVariable> variables)
             throws CompileErrorException {
-        illegalCommaChecker(currentLine);
+        illegalCommaEqualsChecker(currentLine);
         String[] lines = currentLine.split("=");
         String variable = lines[0];
         String AssignmentToCheck = lines[1];
@@ -347,7 +347,6 @@ public class regexManager {
                 return true;
             }
             return false;
-
         }
         throw new CompileErrorException();
 
@@ -367,28 +366,45 @@ public class regexManager {
         lineToRead = lineToRead.trim();
         String parameters = methodPatternChecker(lineToRead)[0];
         String methodName = methodPatternChecker(lineToRead)[1];
-        illegalCommaChecker(parameters);
+        illegalCommaEqualsChecker(parameters);
         String[] parametersList = parameters.split(",");
         LinkedList<String> parametersTypeList = new LinkedList<>();
+        LinkedList<String> methodLines = new LinkedList<String>();
+        Method method = new Method(localHashMap, methodName, methodLines, methodLinkedList,
+                parametersTypeList);
         for (String specificParameter : parametersList) {
-            boolean isFinal = finalHandle(specificParameter);
-            if (isFinal)
-                specificParameter = specificParameter.replaceFirst("final", "");
-            String typeTuple[] = typeChecker(specificParameter);
-            String typeToInsert = typeTuple[0].trim(), variableName = typeTuple[1].trim();
-            parametersTypeList.add(typeToInsert);
-            reservedKeyWordCheck(variableName);
-            LocalVariable localVar = new LocalVariable(typeToInsert, true, isFinal, variableName);
-            if (localHashMap.containsKey(variableName))//check a local variable is not in the hash
-                throw new CompileErrorException();
-            localHashMap.put(variableName, localVar); //add the local variable (parameters) of a method
-            LinkedList<String> methodLines = new LinkedList<String>();
-            Method method = new Method(localHashMap, methodName, methodLines, methodLinkedList, parametersTypeList);
-            methodLinkedList.add(method);
+            isValidParameterVariableHelper  //adds relevant objects to hashmaps
+                    (specificParameter,parametersTypeList,localHashMap);
         }
+        if (methodLinkedList.contains(method))
+            throw new CompileErrorException();
+        methodLinkedList.add(method);
     }
 
 
+    private static void isValidParameterVariableHelper(String specificParameter,LinkedList<String>
+            parametersTypeList,HashMap<String,LocalVariable> localHashMap)
+            throws
+            CompileErrorException{
+        boolean isFinal = finalHandle(specificParameter);
+        if (isFinal)
+            specificParameter = specificParameter.replaceFirst("final", "");
+        String typeTuple[] = typeChecker(specificParameter);
+        String typeToInsert = typeTuple[0].trim(), variableName = typeTuple[1].trim();
+        parametersTypeList.add(typeToInsert);
+        reservedKeyWordCheck(variableName);
+        LocalVariable localVar = new LocalVariable(typeToInsert, true, isFinal, variableName);
+        if (localHashMap.containsKey(variableName))//check a local variable is not in the hash
+            throw new CompileErrorException();
+        localHashMap.put(variableName, localVar); //add the local variable (parameters) of a method
+    }
+
+    /**
+     * Check that the current line is a legal method declaration
+     * @param lineToRead
+     * @return
+     * @throws CompileErrorException
+     */
     public static String[] methodPatternChecker(String lineToRead) throws CompileErrorException {
         lineToRead = lineToRead.trim();
         Matcher methodMatches = METHOD_PATTERN.matcher(lineToRead); //check the case "void func(){" with spaces
@@ -404,17 +420,17 @@ public class regexManager {
     /**
      * checks if the line matches an if/while pattern
      *
-     * @param lineToRead
-     * @return
+     * @param lineToRead the line to check
+     * @return returns the parameters inside the statement
      * @throws CompileErrorException
      */
-    public static String isIfStatement(String lineToRead) throws CompileErrorException {
+    public static String isIfWhileStatement(String lineToRead) throws CompileErrorException {
         lineToRead = lineToRead.trim();
-        Matcher ifMatcher = IF_WHILE_PATTERN.matcher(lineToRead); //check the case "if(){" with spaces
-        if (!ifMatcher.matches()) {
+        Matcher ifWhileMatcher = IF_WHILE_PATTERN.matcher(lineToRead); //check the case "if(){" with spaces
+        if (!ifWhileMatcher.matches()) {
             throw new CompileErrorException();
         }
-        return ifMatcher.group(2); //returns the statement inside if
+        return ifWhileMatcher.group(2); //returns the statement inside if
     }
 
 
@@ -422,7 +438,7 @@ public class regexManager {
     This function checks that the inner condition of an if/while statement is valid
      */
     public static void checkConditionInsideWhileIf(String lineToRead, Method currentMethod) throws CompileErrorException {
-        String conditionIf = isIfStatement(lineToRead);
+        String conditionIf = isIfWhileStatement(lineToRead);
         Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(conditionIf); //condition : (true\false)
         if (booleanMatcher.matches()) {
             return;
@@ -432,7 +448,7 @@ public class regexManager {
             return;
         Matcher booleanVarMatcher = VARIABLE_NAME_PATTERN.matcher(conditionIf); //condition : (a)
         if (booleanVarMatcher.matches()) {
-            if (condiotnCaseVariable(conditionIf, currentMethod))
+            if (conditionCaseVariable(conditionIf, currentMethod))
                 return;
 
         }
@@ -440,14 +456,14 @@ public class regexManager {
         if (orAndMatcher.matches()) {
             String[] conditionParameters = conditionIf.split("([|]{2}|[&]{2})");
             for (String param : conditionParameters)
-                condiotnCaseVariable(param, currentMethod); //todo look into this
+                conditionCaseVariable(param, currentMethod); //todo look into this
         }
         throw new CompileErrorException();
     }
 
 
     //*check the case if(a) when a is a variable*/
-    private static boolean condiotnCaseVariable(String lineToRead, Method currentMethod) throws CompileErrorException {
+    private static boolean conditionCaseVariable(String lineToRead, Method currentMethod) throws CompileErrorException {
         reservedKeyWordCheck(lineToRead);
         LocalVariable variable = currentMethod.suchaVariableExists(lineToRead);
         if (variable == null || !variable.isInitialization())
@@ -461,6 +477,9 @@ public class regexManager {
         return false;
     }
 
+    /*
+    check if the inner lines of a block are legal, if yes adds them to the current block
+     */
     public static boolean innerLineCheck(String lineToRead, Method method) throws CompileErrorException {
         char endOfLine = lineToRead.charAt(lineToRead.length() - 1);
         switch (endOfLine) {
@@ -470,6 +489,10 @@ public class regexManager {
                     return true;
                 Matcher methodCallMatcher = CALL_METHOD.matcher(lineToRead);
                 if (methodCallMatcher.matches()){// match group 1
+                    String parameters = methodCallMatcher.group(1);
+
+
+
 
                 }
                 //a=b matcher
@@ -477,7 +500,7 @@ public class regexManager {
                 //int a=b; matcher
 
             case '{':
-                checkConditionInsideWhileIf(isIfStatement(lineToRead), method);
+                checkConditionInsideWhileIf(isIfWhileStatement(lineToRead), method);
                 return false;
             default: {
                 throw new CompileErrorException();
