@@ -62,7 +62,7 @@ public class Method {
      * @param legalMethods
      * @return
      */
-    public static boolean isLegalMethod(String methodName, LinkedList<Method> legalMethods){
+    public static boolean isLegalMethod(Method methodName, LinkedList<Method> legalMethods){
         if(legalMethods.contains(methodName))
             return true;
         return false;
@@ -157,8 +157,9 @@ public class Method {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(Object o) {if (o.getClass().equals(this.getClass()))
         return methodName.equals(o.toString());
+    throw new UnsupportedOperationException();
     }
 
     @Override
