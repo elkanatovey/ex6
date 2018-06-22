@@ -56,7 +56,7 @@ public class compilationChecker {
                     HashMap<String, LocalVariable> currentLocals = new HashMap<>();
                     regexManager.isValidParameterVariable(currentLine, methods,currentLocals);
                 }
-                regexManager.isIfStatement(currentLine);
+                regexManager.isIfWhileStatement(currentLine);
                 return 1;
             case '}':
                 if (scope<=GLOBAL_SCOPE)
