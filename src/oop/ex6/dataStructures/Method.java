@@ -29,8 +29,8 @@ public class Method {
 
     /**
      * Constructor for a method
-     * @param variablesInScope
-     * @param methodName
+     * @param variablesInScope the variables in the current scope
+     * @param methodName the name of the method
      */
     public Method(HashMap<String, LocalVariable> variablesInScope, String methodName,
                   LinkedList<String> linesToRead, LinkedList<Method> methodLinkedList,
@@ -62,7 +62,7 @@ public class Method {
     /**
      * Check if a method has been declared
      * @param methodName method name to check
-     * @return
+     * @return the method if this is a legal name
      */
     public Method isLegalMethod(String methodName){
         for (Method currentMethod: methodLinkedList){
