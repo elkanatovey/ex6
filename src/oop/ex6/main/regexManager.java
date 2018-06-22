@@ -21,19 +21,13 @@ public class regexManager {
     private static final Pattern SPACE_PATTERN = compile("^\\s*$");
     private static final Pattern BACKSLASH_PATTERN = compile("^\\/\\/.*");
     private static final Pattern VARIABLE_NAME_PATTERN = compile("(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
-    //    private static final Pattern METHOD_NAME_PATTERN = Pattern.compile("(\\s*[A-Za-z]\\w*\\w*\\s*)|(_\\w+)");
-//    private static final String METHOD_PARAMETERS = "(\\(\\))";
     private static final String METHOD_NAME = "(\\s*[A-Za-z]\\w*\\s*)|(_\\w+\\s*)";
     private static final Pattern METHOD_PATTERN = compile("\\s*void\\s*(([A-Za-z]\\w*\\s*)|([_]\\w+\\s*))" +
             "\\s*[(](.*)[)]\\s*[{]");
-    //    private static final Pattern PARAMETERS_PATTERN = Pattern.compile("\\s*\\(\\)\\s*");
     private static final Pattern RETURN_STATEMENT_PATTERN = compile("\\s*(return\\s*;\\s*)$");
-    //    private static final Pattern OPEN_STATEMENT_PATTERN = Pattern.compile("\\s*(\\{\\s*)$");
     private static final Pattern CLOSED_STATEMENT_PATTERN = compile("\\s*(}\\s*)");
     private static final Pattern IF_WHILE_PATTERN = compile("\\s*(if|while)\\s*[(](.*)[)]\\s*[{]");
-    //    private static final Pattern WHILE_PATTERN = Pattern.compile("\\s*while\\s*[(](.*)[)]\\s*[{]");
     private static final Pattern VAR_CONDITION_PATTERN = compile("\\s*((int|double|boolean|char|String)\\s+).*(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
-    //private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = Pattern.compile("((\\s*\\D\\w*?_*\\s*)|(_\\w+))\\s*(&&|\\|\\|\\s*\\D*)((\\w+\\s*)|(_\\w+))");
     private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = compile("" + conditionStatement + "(([|]{2}|[&]{2})" + conditionStatement + ")*"); //todo check
     private static final Pattern CONDITIONS_OR_AND_PATTERN = compile(".*&&.*|\\|\\|\\.*");
     private static final Pattern CONDITIONS_INT_DOUBLE_PATTERN = compile("([+'-]?\\d*\\.?\\d+)|(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
@@ -501,8 +495,8 @@ public class regexManager {
                     return true;
                 if (innerSemiColonCheck(lineToRead, method))
                     return true;
-
-
+                isValidLocalVariable(lineToRead, method);
+                return true;
                 }
                 //a=b matcher
                 //int a; matcher
@@ -516,6 +510,134 @@ public class regexManager {
             }
         }
     }
+
+    private static void isValidLocalVariable
+            (String lineToRead,  Method method) throws CompileErrorException {
+        lineToRead = lineToRead.trim();
+        if (lineToRead.endsWith(";"))
+            lineToRead = lineToRead.substring(0, lineToRead.length() - 1);
+        boolean isFinal = finalHandle(lineToRead);
+        if (isFinal)
+            lineToRead = lineToRead.replaceFirst("final", "");
+        Matcher validVariableWithNoTypeMatcher = VAR_TO_VAR_PATTERN.matcher(lineToRead);
+        //pattern to match a specific case a=b without type
+        if (validVariableWithNoTypeMatcher.matches()) {
+            if (AssignLocalVariableToVariable(lineToRead, method))
+                return;
+            //todo check
+        }
+        String typeTuple[] = typeChecker(lineToRead);
+        String typeToInsert = typeTuple[0], variables = typeTuple[1];
+        String[] allVariables = illegalCommaEqualsChecker(variables);
+        for (String variableToAnalyze : allVariables) {
+            addSingleLocalVariable(variableToAnalyze, isFinal, method, typeToInsert);
+        }
+    }
+
+    private static void addSingleLocalVariable(String variableToAnalyze, boolean isFinal, Method method,
+                                               String typeToInsert)
+            throws
+            CompileErrorException {
+        String[] specificVariable = variableToAnalyze.split("=");
+        int allowedLength = 2;
+        if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
+            throw new CompileErrorException();
+        String variableName = specificVariable[0].trim();
+        reservedKeyWordCheck(variableName);
+        boolean initialization = false;
+        if (specificVariable.length == 2) {
+            initialization = true;
+            if (!checkLocalLegalAssignment(specificVariable[1], typeToInsert, method))
+                //check the the type is legal
+                throw new CompileErrorException();
+        } else if (isFinal)
+            throw new CompileErrorException();
+        if (method.suchVariableExists(variableName)!=null) {
+            LocalVariable existVar = method.suchVariableExists(variableName);
+            if (existVar.isInitialization()//todo is final?
+                throw new CompileErrorException();
+        }
+        //if the key exs but the existing global variable isn't initialized it ok
+        globalHashMap.put(variableName, new GlobalVariable(typeToInsert, initialization,
+                isFinal, variableName));
+        //todo specificVariable[0] twice ? type is the name, therefore twice
+    }
+
+
+    private static boolean AssignLocalVariableToVariable(String currentLine, Method method)
+            throws CompileErrorException {
+        illegalCommaEqualsChecker(currentLine);
+        String[] lines = currentLine.split("=");
+        String variable = lines[0];
+        String AssignmentToCheck = lines[1];
+        if (method.suchVariableExists(variable)!=null) {
+            LocalVariable variableInHash = method.suchVariableExists(variable);
+            String type = variableInHash.getType();
+            if (variableInHash.isFinal())
+                throw new CompileErrorException();
+            if (checkLocalLegalAssignment(AssignmentToCheck, type, method)) {
+                variables.get(variable).setInitialization(true);  //todo make actually local
+                return true;
+            }
+            return false;
+        }
+        throw new CompileErrorException();
+
+    }
+
+
+    private static boolean checkLocalLegalAssignment
+            (String AssignmentToCheck, String type, Method method) throws CompileErrorException {
+        AssignmentToCheck = AssignmentToCheck.trim();
+        if(checkLocalLegalAssignmentHelper(AssignmentToCheck, type, method)) {
+            return true;
+        }
+        return matchTypeToValue(type, AssignmentToCheck);
+    }
+
+
+    /**
+     * Receive variable name, type, and assignment to the variable. Checks if the assignment is an existing
+     * variable
+     * that we can use to assign. For example a=b, checks if b is a valid assignment for a. (does not check
+     * if a is final!!!!)
+     *
+     * @param AssignmentToCheck the name of a possible variable (in our case above b)
+     * @param type              the type of the current variable (in our case above a)
+     * @param method the current scope
+     * @return true/false if it is an assignment or not
+     * @throws CompileErrorException if a legal assignment was attempted
+     */
+    private static boolean checkLocalLegalAssignmentHelper
+    (String AssignmentToCheck, String type,  Method method)
+            throws CompileErrorException {
+        if (method.suchVariableExists(AssignmentToCheck)!=null) {
+            if (method.suchVariableExists(AssignmentToCheck).isInitialization()) {
+                if (type.equals(method.suchVariableExists(AssignmentToCheck).getType()))
+                    return true;
+                switch (type) {
+                    case DOUBLE: {
+                        if (method.suchVariableExists(AssignmentToCheck).getType().equals(INT))
+                            return true;
+                    }
+                    case BOOLEAN: {
+                        if (method.suchVariableExists(AssignmentToCheck).getType().equals(DOUBLE))
+                            return true;
+                        if (method.suchVariableExists(AssignmentToCheck).getType().equals(INT))
+                            return true;
+                    }
+                    default: {
+                        throw new CompileErrorException();  //if type assignment does not match
+                    }
+                }
+            } else
+                throw new CompileErrorException();  // if variable is not initialized
+        }
+        return false;
+    }
+
+
+
 
     /*Check if this is calling a function, return true false if it is, if illegal call throw exception*/
     private static boolean innerSemiColonCheck(String lineToRead, Method method) throws CompileErrorException {
