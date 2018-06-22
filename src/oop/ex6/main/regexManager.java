@@ -554,12 +554,11 @@ public class regexManager {
             throw new CompileErrorException();
         if (method.suchVariableExists(variableName)!=null) {
             LocalVariable existVar = method.suchVariableExists(variableName);
-            if (existVar.isInitialization()//todo is final?
+            if (existVar.isInitialization())//todo is final?
                 throw new CompileErrorException();
         }
         //if the key exs but the existing global variable isn't initialized it ok
-        globalHashMap.put(variableName, new GlobalVariable(typeToInsert, initialization,
-                isFinal, variableName));
+        method.addUpdateLocalVariable(new LocalVariable(typeToInsert, initialization,isFinal, variableName));
         //todo specificVariable[0] twice ? type is the name, therefore twice
     }
 
@@ -576,7 +575,9 @@ public class regexManager {
             if (variableInHash.isFinal())
                 throw new CompileErrorException();
             if (checkLocalLegalAssignment(AssignmentToCheck, type, method)) {
-                variables.get(variable).setInitialization(true);  //todo make actually local
+                method.addUpdateLocalVariable(new LocalVariable(type, true,false, variable));  //todo make
+                // actually
+                // local
                 return true;
             }
             return false;
