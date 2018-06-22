@@ -4,7 +4,6 @@ import oop.ex6.*;
 import oop.ex6.dataStructures.GlobalVariable;
 import oop.ex6.dataStructures.LocalVariable;
 import oop.ex6.dataStructures.Method;
-import oop.ex6.dataStructures.Variable;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -16,10 +15,7 @@ public class regexManager {
 
     private static final String INT = "int", DOUBLE = "double", STRING = "String", BOOLEAN = "boolean", CHAR = "char";
     private static final Pattern CALL_METHOD =
-            compile("\\s*\\s*[a-zA-Z]\\w*\\s*\\s*\\(\\s*((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)?|" +
-                    "((\\s*\\s*((([^,=\\s])+)|" +
-                    "(\".*\"))\\s*\\s*)(\\s*,\\s*\\s*((([^,=\\s])+)|" +
-                    "(\".*\"))\\s*\\s*)*)\\s*)\\s*\\)\\s*;\\s*");
+            compile("\\s*\\s*([a-zA-Z]\\w*)\\s*\\s*\\(\\s*((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)?|((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)(\\s*,\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)*)\\s*)\\s*\\)\\s*;\\s*");
     private static final String FINAL_STATEMENT = ("\\s*(final\\s+.*)");
     private static String conditionStatement = "(true|false|-?[\\d]+|-?([\\d]+.[\\d]+)|(\\s*[A-Za-z]\\w*?_*\\s*)|(_\\w+))";
     private static final Pattern SPACE_PATTERN = compile("^\\s*$");
@@ -58,6 +54,9 @@ public class regexManager {
     private static final Pattern CHAR_PATTERN = compile("'.'"); //no spaces inside
     private static final Pattern VAR_TO_VAR_PATTERN = compile("(\\s*\\D\\w*\\s*=\\D\\w*)|" +
                                                                        "(\\s*\\D\\w*\\s*=\\d\\s*)"); //a=b or a=5 without type
+    private static int VARIABLE_EXISTS_IN_SCOPE = -1;
+    private static int VARIABLE_EXISTS_NOT_IN_SCOPE = 0;
+    private static int VARIABLE_DOESNT_EXIST = 1;
 
 
     /**
@@ -186,8 +185,7 @@ public class regexManager {
     private static boolean checkLegalAssignment
     (String AssignmentToCheck, String type, HashMap<String, GlobalVariable> globals) throws CompileErrorException {
         AssignmentToCheck = AssignmentToCheck.trim();
-        HashMap<String, Variable> a = (HashMap) globals;  //todo be fixed
-        if (checkLegalAssignmentHelper(AssignmentToCheck, type, a)) {
+        if (checkLegalAssignmentHelper(AssignmentToCheck, type, globals)) {
             return true;
         }
         switch (type) {
@@ -246,7 +244,7 @@ public class regexManager {
      * @throws CompileErrorException if a legal assignment was attempted
      */
     private static boolean checkLegalAssignmentHelper
-    (String AssignmentToCheck, String type, HashMap<String, Variable> variablesToCheck)
+    (String AssignmentToCheck, String type, HashMap<String, GlobalVariable> variablesToCheck)
             throws CompileErrorException {
         if (variablesToCheck.containsKey(AssignmentToCheck)) {
             if (variablesToCheck.get(AssignmentToCheck).isInitialization()) {
@@ -373,17 +371,19 @@ public class regexManager {
         Method method = new Method(localHashMap, methodName, methodLines, methodLinkedList,
                 parametersTypeList);
         for (String specificParameter : parametersList) {
-            isValidParameterVariableHelper  //adds relevant objects to hashmaps
-                    (specificParameter,parametersTypeList,localHashMap);
+            if(isValidParameterVariableHelper
+                    (specificParameter,parametersTypeList,localHashMap, method)== VARIABLE_EXISTS_IN_SCOPE)
+                throw new CompileErrorException(); //adds relevant objects to hashmaps
         }
         if (methodLinkedList.contains(method))
             throw new CompileErrorException();
         methodLinkedList.add(method);
     }
 
-
-    private static void isValidParameterVariableHelper(String specificParameter,LinkedList<String>
-            parametersTypeList,HashMap<String,LocalVariable> localHashMap)
+    /*Add a local variable to a hashmap if it doesn't exist in current scope, returns -1,0 or 1 based upon
+    if the variable exists in current/outer scope*/
+    private static int isValidParameterVariableHelper(String specificParameter,LinkedList<String>
+            parametersTypeList,HashMap<String,LocalVariable> localHashMap, Method method)
             throws
             CompileErrorException{
         boolean isFinal = finalHandle(specificParameter);
@@ -395,8 +395,13 @@ public class regexManager {
         reservedKeyWordCheck(variableName);
         LocalVariable localVar = new LocalVariable(typeToInsert, true, isFinal, variableName);
         if (localHashMap.containsKey(variableName))//check a local variable is not in the hash
-            throw new CompileErrorException();
-        localHashMap.put(variableName, localVar); //add the local variable (parameters) of a method
+            return VARIABLE_EXISTS_IN_SCOPE;
+        if (method.suchVariableExists(localVar.getName())!=null) {
+            localHashMap.put(variableName, localVar); //add the local variable (parameters) of a method
+            return VARIABLE_EXISTS_NOT_IN_SCOPE;  //false if in further out scope
+        }
+        localHashMap.put(variableName, localVar);
+        return VARIABLE_DOESNT_EXIST;
     }
 
     /**
@@ -465,7 +470,7 @@ public class regexManager {
     //*check the case if(a) when a is a variable*/
     private static boolean conditionCaseVariable(String lineToRead, Method currentMethod) throws CompileErrorException {
         reservedKeyWordCheck(lineToRead);
-        LocalVariable variable = currentMethod.suchaVariableExists(lineToRead);
+        LocalVariable variable = currentMethod.suchVariableExists(lineToRead);
         if (variable == null || !variable.isInitialization())
             throw new CompileErrorException();
         String typeToCheck = variable.getType();
@@ -489,8 +494,29 @@ public class regexManager {
                     return true;
                 Matcher methodCallMatcher = CALL_METHOD.matcher(lineToRead);
                 if (methodCallMatcher.matches()){// match group 1
-                    String parameters = methodCallMatcher.group(1);
+                    String methodName = methodCallMatcher.group(1);
+                    Method methodCalled = method.isLegalMethod(methodName);
+                    if (methodCalled!=null) {
+                        String parameters = methodCallMatcher.group(2);
+                        String[] parameterArray = parameters.split(",");
+                        if (parameterArray.length!=methodCalled.getMethodParametersType().length)
+                            throw new CompileErrorException();
+                        for (int i = 0; i< parameterArray.length; i++){
+                            Matcher isVariableName = VARIABLE_NAME_PATTERN.matcher(parameterArray[i]);
+                            if (isVariableName.matches()){
+                                parameterArray[i] = parameterArray[i].trim();
+                                LocalVariable parameterToCheck = method.suchVariableExists(parameterArray[i]);
+                                if(parameterToCheck!=null&&methodCalled.getMethodParametersType()[i].equals
+                                        (parameterToCheck.getType())&&parameterToCheck.isInitialization())
+                                    continue;
+                                else
+                                    throw new CompileErrorException();
+                            }
 
+                        }
+
+                    }
+                    throw new CompileErrorException();  // if the name is illegal
 
 
 
