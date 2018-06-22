@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Stack;
 
 public class compilationChecker {
 
