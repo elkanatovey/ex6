@@ -465,6 +465,10 @@ public class regexManager {
                 if(returnMatcher.matches())
                     return true;
 
+
+
+
+
             case '{':
                 checkConditionInsideWhileIf(isIfStatement(lineToRead), method);
                 return false;
