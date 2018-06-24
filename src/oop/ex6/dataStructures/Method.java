@@ -24,7 +24,7 @@ public class Method {
 
     private String[] methodParametersType;
 
-    private static  LinkedList<String> emptyList;
+    private static  LinkedList<String> emptyList = new LinkedList<>();  // so won't be null
 
 
     /**
@@ -139,12 +139,14 @@ public class Method {
             previousLine = lineToCheck;
             if (previousLine.contentEquals("}"))  // if we closed the block
                 break;
-            lineToCheck = linesToRead.pollFirst();
-            if (regexManager.innerLineCheck(lineToCheck,this)) // read line and see case, if variable add-else call on new scope
+            if (regexManager.innerLineCheck(lineToCheck, this)){ // read line and see case, if variable add-else call on new scope
+                lineToCheck = linesToRead.pollFirst();
                 continue;
+            }
             HashMap<String, LocalVariable> valuesInOfScope = new HashMap<>();
             Method method = new Method(valuesInOfScope,RECURSIVE_CALL_NAME,this.linesToRead,this);
             method.checkLegal(globals);
+            lineToCheck = linesToRead.pollFirst();
         }
         if (this.methodParent!=null)
             if (linesToRead.peekFirst()==null)
@@ -153,6 +155,14 @@ public class Method {
 
     public LinkedList<String> getLinesToRead() {
         return linesToRead;
+    }
+
+    public boolean isLegalMethodClose(){
+        if (linesToRead.peekLast().equals("}")){
+            if (linesToRead.get((linesToRead.size()-2)).equals("return;"))
+                return true;
+        }
+        return false;
     }
 
     @Override
