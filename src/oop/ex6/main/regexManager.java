@@ -13,24 +13,27 @@ import static java.util.regex.Pattern.compile;
 
 public class regexManager {
 
-    private static final String INT = "int", DOUBLE = "double", STRING = "String", BOOLEAN = "boolean", CHAR = "char";
+    private static String CONDITIONS_INT_DOUBLE = "([+'-]?\\d*\\.?\\d+)|(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)";
+    private static String VARIABLE_NAME_STRING = "(\\s*\\D\\w*?_*\\s*)|(_\\w+)";
+    private static final String INT = "int", DOUBLE = "double",
+            STRING = "String", BOOLEAN = "boolean", CHAR = "char";
+    private static final String BOOLEAN_PATTERN1 = ("(^|\\s+)(true|false)($|\\s+)");
+    private static final Pattern INT_PATTERN = compile("(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
+    private static final Pattern DOUBLE_PATTERN = compile("[+'-]?\\d*\\.?\\d+");
+    private static final Pattern STRING_PATTERN = compile("\\s*\".*(.*)+\\s*.*\"\\s*"); //how to add ""
+    private static final Pattern BOOLEAN_PATTERN = compile("(^|\\s+)(true|false)($|\\s+)");  //todo debug
     private static final Pattern CALL_METHOD =
             compile("\\s*\\s*([a-zA-Z]\\w*)\\s*\\s*\\(\\s*((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)?|((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)(\\s*,\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)*)\\s*)\\s*\\)\\s*;\\s*");
     private static final String FINAL_STATEMENT = ("\\s*(final\\s+.*)");
     private static String conditionStatement = "(true|false|-?[\\d]+|-?([\\d]+.[\\d]+)|(\\s*[A-Za-z]\\w*?_*\\s*)|(_\\w+))";
     private static final Pattern SPACE_PATTERN = compile("^\\s*$");
     private static final Pattern BACKSLASH_PATTERN = compile("^\\/\\/.*");
-    private static final Pattern VARIABLE_NAME_PATTERN = compile("(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
-    private static final String METHOD_NAME = "(\\s*[A-Za-z]\\w*\\s*)|(_\\w+\\s*)";
+    private static final Pattern VARIABLE_NAME_PATTERN = compile(VARIABLE_NAME_STRING);
+    private static final Pattern CONDITIONS_INT_DOUBLE_PATTERN = compile(CONDITIONS_INT_DOUBLE);
     private static final Pattern METHOD_PATTERN = compile("\\s*void\\s*(([A-Za-z]\\w*\\s*)|([_]\\w+\\s*))" +
             "\\s*[(](.*)[)]\\s*[{]");
     private static final Pattern RETURN_STATEMENT_PATTERN = compile("\\s*(return\\s*;\\s*)$");
-    private static final Pattern CLOSED_STATEMENT_PATTERN = compile("\\s*(}\\s*)");
     private static final Pattern IF_WHILE_PATTERN = compile("\\s*(if|while)\\s*[(](.*)[)]\\s*[{]");
-    private static final Pattern VAR_CONDITION_PATTERN = compile("\\s*((int|double|boolean|char|String)\\s+).*(\\s*\\D\\w*?_*\\s*)|(_\\w+)");
-    private static final Pattern CONDITIONS_VAR_OR_AND_PATTERN = compile("" + conditionStatement + "(([|]{2}|[&]{2})" + conditionStatement + ")*"); //todo check
-    private static final Pattern CONDITIONS_OR_AND_PATTERN = compile(".*&&.*|\\|\\|\\.*");
-    private static final Pattern CONDITIONS_INT_DOUBLE_PATTERN = compile("([+'-]?\\d*\\.?\\d+)|(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
     private static final Pattern FINAL_STATEMENT_PATTERN
             = compile("\\s*(final\\s*)\\s+((int|double|boolean|char|String)\\s+.*)$");
     //check if before final there spaces
@@ -40,10 +43,6 @@ public class regexManager {
     private static final String RESERVED_KEYWORDS =
             "((\\w*\\s+)|\\s*)((int|double|boolean|char|String|void|final|if|while|true|false|return)\\s+.*)";
     private static final Pattern RESERVED_KEYWORDS_PATTERN = compile(RESERVED_KEYWORDS);
-    private static final Pattern INT_PATTERN = compile("(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
-    private static final Pattern DOUBLE_PATTERN = compile("[+'-]?\\d*\\.?\\d+");
-    private static final Pattern STRING_PATTERN = compile("\\s*\".*(.*)+\\s*.*\"\\s*"); //how to add ""
-    private static final Pattern BOOLEAN_PATTERN = compile("(^|\\s+)(true|false)($|\\s+)");  //todo debug
     private static final Pattern EQULE_COMMA_PATTERN = compile("\\w*((=)|,)\\s*");
     private static final Pattern CHAR_PATTERN = compile("'.'"); //no spaces inside
     private static final Pattern VAR_TO_VAR_PATTERN = compile("(\\s*\\D\\w*\\s*=\\D\\w*)|" +
@@ -304,6 +303,11 @@ public class regexManager {
         Matcher equleCommaMatcher = EQULE_COMMA_PATTERN.matcher(variables);
         if (equleCommaMatcher.matches()) //if there is a "," or "=" which we split with (example ab=)
             throw new CompileErrorException();
+        String[] variableArray = variables.split(",");
+        for (String variable: variableArray){
+            if (variable.equals("")&&variableArray.length>1)
+                throw new CompileErrorException();
+        }
         return variables.split(",");
     }
 
@@ -447,27 +451,25 @@ public class regexManager {
     This function checks that the inner condition of an if/while statement is valid
      */
     public static void checkConditionInsideWhileIf(String lineToRead, Method currentMethod) throws CompileErrorException {
-        String conditionIf = isIfWhileStatement(lineToRead);
-        Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(conditionIf); //condition : (true\false)
-        if (booleanMatcher.matches()) {
-            return;
+        String conditionIf = isIfWhileStatement(lineToRead).trim();
+        String[] conditionsArray = conditionIf.split("(\\|\\s*\\|)|(\\&\\s*\\&)");
+        for (String param : conditionsArray) {
+            param=param.trim();
+        Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(param); //condition : (true\false)
+        if (!booleanMatcher.matches()) {
+            Matcher intDoubleMatcher = CONDITIONS_INT_DOUBLE_PATTERN.matcher(param); //condition : (5)
+                if (!intDoubleMatcher.matches()) {
+                    Matcher booleanVarMatcher = VARIABLE_NAME_PATTERN.matcher(param); //condition : (a)
+                    if (booleanVarMatcher.matches()) {
+                        if (!conditionCaseVariable(param, currentMethod))
+                            throw new CompileErrorException();
+                    }
+                    else
+                        throw new CompileErrorException();
+                }
         }
-        Matcher intDoubleMatcher = CONDITIONS_INT_DOUBLE_PATTERN.matcher(conditionIf); //condition : (5)
-        if (intDoubleMatcher.matches())
-            return;
-        Matcher booleanVarMatcher = VARIABLE_NAME_PATTERN.matcher(conditionIf); //condition : (a)
-        if (booleanVarMatcher.matches()) {
-            if (conditionCaseVariable(conditionIf, currentMethod))
-                return;
-
         }
-        Matcher orAndMatcher = CONDITIONS_VAR_OR_AND_PATTERN.matcher(lineToRead); //condition : (a||b && c)
-        if (orAndMatcher.matches()) {
-            String[] conditionParameters = conditionIf.split("([|]{2}|[&]{2})");
-            for (String param : conditionParameters)
-                conditionCaseVariable(param, currentMethod); //todo look into this
-        }
-        throw new CompileErrorException();
+        return;
     }
 
 
@@ -478,7 +480,7 @@ public class regexManager {
         if (variable == null || !variable.isInitialization())
             throw new CompileErrorException();
         String typeToCheck = variable.getType();
-        if (typeToCheck == "boolean" | typeToCheck == "int" || typeToCheck == "double") {
+        if (typeToCheck.equals("boolean") | typeToCheck.equals("int") || typeToCheck.equals("double")) {
             return true;
 
         }
@@ -541,6 +543,8 @@ public class regexManager {
                                                String typeToInsert)
             throws
             CompileErrorException {
+        if (method.getLocalVariable(variableToAnalyze)!=null)
+            throw new CompileErrorException();
         String[] specificVariable = variableToAnalyze.split("=");
         int allowedLength = 2;
         if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
