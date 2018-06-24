@@ -43,7 +43,7 @@ public class regexManager {
     private static final Pattern INT_PATTERN = compile("(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
     private static final Pattern DOUBLE_PATTERN = compile("[+'-]?\\d*\\.?\\d+");
     private static final Pattern STRING_PATTERN = compile("\\s*\".*(.*)+\\s*.*\"\\s*"); //how to add ""
-    private static final Pattern BOOLEAN_PATTERN = compile(".\\s+(true|false)\\s+.");
+    private static final Pattern BOOLEAN_PATTERN = compile("(^|\\s+)(true|false)($|\\s+)");  //todo debug
     private static final Pattern EQULE_COMMA_PATTERN = compile("\\w*((=)|,)\\s*");
     private static final Pattern CHAR_PATTERN = compile("'.'"); //no spaces inside
     private static final Pattern VAR_TO_VAR_PATTERN = compile("(\\s*\\D\\w*\\s*=\\D\\w*)|" +
@@ -60,6 +60,8 @@ public class regexManager {
      * @return true/ false based upon if the line is ignorable
      */
     public static boolean isLineIgnorable(String currentLine) {
+        if (currentLine == null)  //edge case null string
+            return true;
         Matcher matcher1 = SPACE_PATTERN.matcher(currentLine);
         Matcher matcher2 = BACKSLASH_PATTERN.matcher(currentLine);
         if (matcher1.matches() || matcher2.matches())
@@ -362,18 +364,19 @@ public class regexManager {
     (String lineToRead, LinkedList<Method> methodLinkedList, HashMap<String, LocalVariable> localHashMap)
             throws CompileErrorException {
         lineToRead = lineToRead.trim();
-        String parameters = methodPatternChecker(lineToRead)[0];
-        String methodName = methodPatternChecker(lineToRead)[1];
-        illegalCommaEqualsChecker(parameters);
-        String[] parametersList = parameters.split(",");
+        String[] parametersMethodArray = methodPatternChecker(lineToRead);  // todo fix
+        String parameters = parametersMethodArray[0], methodName = parametersMethodArray[1];
+        String[] parametersList = illegalCommaEqualsChecker(parameters);
         LinkedList<String> parametersTypeList = new LinkedList<>();
         LinkedList<String> methodLines = new LinkedList<String>();
         Method method = new Method(localHashMap, methodName, methodLines, methodLinkedList,
                 parametersTypeList);
         for (String specificParameter : parametersList) {
-            if (isValidParameterVariableHelper
-                    (specificParameter, parametersTypeList, localHashMap, method) == VARIABLE_EXISTS_IN_SCOPE)
-                throw new CompileErrorException(); //adds relevant objects to hashmaps
+            if (!specificParameter.trim().equals("")) {  //todo check
+                if (isValidParameterVariableHelper
+                        (specificParameter, parametersTypeList, localHashMap, method) == VARIABLE_EXISTS_IN_SCOPE)
+                    throw new CompileErrorException(); //adds relevant objects to hashmaps
+            }
         }
         if (methodLinkedList.contains(method))
             throw new CompileErrorException();
@@ -419,7 +422,7 @@ public class regexManager {
         }
         String parameters = methodMatches.group(4);
         String methodName = methodMatches.group(1);
-        return new String[]{parameters, methodName};
+        return new String[]{parameters, methodName}; // returns the name and parameters as an index
     }
 
 
@@ -503,7 +506,7 @@ public class regexManager {
                 //int a=b; matcher
 
             case '{':
-                checkConditionInsideWhileIf(isIfWhileStatement(lineToRead), method);
+                checkConditionInsideWhileIf(lineToRead, method);
                 return false;
             default: {
                 throw new CompileErrorException();
