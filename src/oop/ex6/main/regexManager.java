@@ -373,15 +373,19 @@ public class regexManager {
         String[] parametersList = illegalCommaEqualsChecker(parameters);
         LinkedList<String> parametersTypeList = new LinkedList<>();
         LinkedList<String> methodLines = new LinkedList<String>();
-        Method method = new Method(localHashMap, methodName, methodLines, methodLinkedList,
+        Method throwawayMethod = new Method(localHashMap, methodName, methodLines, methodLinkedList,  //
+                // used to access method resources but not finalized
                 parametersTypeList);
         for (String specificParameter : parametersList) {
             if (!specificParameter.trim().equals("")) {  //todo check
                 if (isValidParameterVariableHelper
-                        (specificParameter, parametersTypeList, localHashMap, method) == VARIABLE_EXISTS_IN_SCOPE)
+                        (specificParameter, parametersTypeList, localHashMap, throwawayMethod) ==
+                        VARIABLE_EXISTS_IN_SCOPE)
                     throw new CompileErrorException(); //adds relevant objects to hashmaps
             }
         }
+        Method method = new Method(localHashMap, methodName, methodLines, methodLinkedList,
+                parametersTypeList);
         if (methodLinkedList.contains(method))
             throw new CompileErrorException();
         methodLinkedList.add(method);
