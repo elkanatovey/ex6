@@ -24,7 +24,7 @@ public class compilationChecker {
         HashMap<String,GlobalVariable> globals = new HashMap<>();
         LinkedList<Method> methods = new LinkedList<>();
         String currentLine;
-        int scope = 0;
+        int scope = 0, previousScope = 0;
         do {
             currentLine = fileToRead.readLine();
             if (regexManager.isLineIgnorable(currentLine))  // in case of a whitespace line, or comment line
@@ -33,6 +33,10 @@ public class compilationChecker {
             if (scope!= GLOBAL_SCOPE){
                     methods.peekLast().addLine(currentLine.trim());
             }
+            else if (previousScope!= GLOBAL_SCOPE){
+                methods.peekLast().addLine(currentLine.trim());
+            }
+            previousScope = scope;
         } while (currentLine != null);
         checkMethods(globals, methods);
     }
@@ -49,14 +53,15 @@ public class compilationChecker {
             case ';':
                 if (scope == GLOBAL_SCOPE) {
                     regexManager.isValidGlobalVariable(currentLine, globals);
-                    return 0;
                 }
+                return 0;
             case '{':
                 if (scope==GLOBAL_SCOPE) {
                     HashMap<String, LocalVariable> currentLocals = new HashMap<>();
                     regexManager.isValidParameterVariable(currentLine, methods,currentLocals);
                 }
-                regexManager.isIfWhileStatement(currentLine);
+                else
+                    regexManager.isIfWhileStatement(currentLine);
                 return 1;
             case '}':
                 if (scope<=GLOBAL_SCOPE)
@@ -79,9 +84,7 @@ public class compilationChecker {
             currentMethod.getLinesToRead().pollFirst(); // removes header line
             if (currentMethod.getLinesToRead().size()<2) //todo remove first line from method lines
                 throw new CompileErrorException();
-            if (currentMethod.getLinesToRead().peekLast().contentEquals("}")&&
-                    currentMethod.getLinesToRead().lastIndexOf("return;") == currentMethod.getLinesToRead()
-                            .size()-2)
+            if (currentMethod.isLegalMethodClose())
                 currentMethod.checkLegal(globals);
             else
                 throw new CompileErrorException();
