@@ -41,7 +41,7 @@ public class Method {
         this.globals = new HashMap<>();
         this.methodLinkedList = methodLinkedList;
         this.methodParent = null;  //default
-        this.methodParametersType = (String[]) methodParametersType.toArray();
+        this.methodParametersType =  methodParametersType.toArray(new String[methodParametersType.size()]);
     }
 
     public String[] getMethodParametersType() {
@@ -89,9 +89,9 @@ public class Method {
      * @param variableToAdd
      * @throws CompileErrorException
      */
-    public void addLocalVariable(LocalVariable variableToAdd) throws CompileErrorException {
+    public void addUpdateLocalVariable(LocalVariable variableToAdd) throws CompileErrorException {
         if(this.variablesInScope.containsKey(variableToAdd.getName())) {
-            throw new CompileErrorException();
+            variablesInScope.get(variableToAdd.getName()).setInitialization(true);
         }
         this.variablesInScope.put(variableToAdd.getName(),variableToAdd);
     }
