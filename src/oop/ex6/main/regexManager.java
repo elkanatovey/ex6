@@ -656,7 +656,7 @@ public class regexManager {
                 String[] parameterArray = parameters.split(",");
                 if (parameterArray.length != methodCalled.getMethodParametersType().length) {
                     if (parameterArray.length == 1 && parameterArray[0].equals("") && methodCalled
-                            .getMethodParametersType().length == VARIABLE_DOESNT_EXIST)
+                            .getMethodParametersType().length == VARIABLE_EXISTS_NOT_IN_SCOPE)
                         return true;  // edge case - no parameters in method
                     else
                         throw new CompileErrorException();
