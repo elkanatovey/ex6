@@ -14,10 +14,9 @@ import static java.util.regex.Pattern.compile;
 public class regexManager {
 
     private static String CONDITIONS_INT_DOUBLE = "([+'-]?\\d*\\.?\\d+)|(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)";
-    private static String VARIABLE_NAME_STRING = "(\\s*\\D\\w*?_*\\s*)|(_\\w+)";
+    private static String VARIABLE_NAME_STRING = "\\s*((_\\w+)|([^_\\d\\s]\\w*))\\s*$";
     private static final String INT = "int", DOUBLE = "double",
             STRING = "String", BOOLEAN = "boolean", CHAR = "char";
-    private static final String BOOLEAN_PATTERN1 = ("(^|\\s+)(true|false)($|\\s+)");
     private static final Pattern INT_PATTERN = compile("(\\s*\\d+\\s*)|(\\s*-\\d+\\s*)");
     private static final Pattern DOUBLE_PATTERN = compile("[+'-]?\\d*\\.?\\d+");
     private static final Pattern STRING_PATTERN = compile("\\s*\".*(.*)+\\s*.*\"\\s*"); //how to add ""
@@ -25,13 +24,13 @@ public class regexManager {
     private static final Pattern CALL_METHOD =
             compile("\\s*\\s*([a-zA-Z]\\w*)\\s*\\s*\\(\\s*((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)?|((\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)(\\s*,\\s*\\s*((([^,=\\s])+)|(\".*\"))\\s*\\s*)*)\\s*)\\s*\\)\\s*;\\s*");
     private static final String FINAL_STATEMENT = ("\\s*(final\\s+.*)");
-    private static String conditionStatement = "(true|false|-?[\\d]+|-?([\\d]+.[\\d]+)|(\\s*[A-Za-z]\\w*?_*\\s*)|(_\\w+))";
     private static final Pattern SPACE_PATTERN = compile("^\\s*$");
     private static final Pattern BACKSLASH_PATTERN = compile("^\\/\\/.*");
     private static final Pattern VARIABLE_NAME_PATTERN = compile(VARIABLE_NAME_STRING);
     private static final Pattern CONDITIONS_INT_DOUBLE_PATTERN = compile(CONDITIONS_INT_DOUBLE);
     private static final Pattern METHOD_PATTERN = compile("\\s*void\\s*(([A-Za-z]\\w*\\s*)|([_]\\w+\\s*))" +
             "\\s*[(](.*)[)]\\s*[{]");
+    private static final Pattern METHOD_NAME_PATTERN = compile("\\s*[a-zA-Z]\\w*\\s*");
     private static final Pattern RETURN_STATEMENT_PATTERN = compile("\\s*(return\\s*;\\s*)$");
     private static final Pattern IF_WHILE_PATTERN = compile("\\s*(if|while)\\s*[(](.*)[)]\\s*[{]");
     private static final Pattern FINAL_STATEMENT_PATTERN
@@ -45,11 +44,11 @@ public class regexManager {
     private static final Pattern RESERVED_KEYWORDS_PATTERN = compile(RESERVED_KEYWORDS);
     private static final Pattern EQULE_COMMA_PATTERN = compile("\\w*((=)|,)\\s*");
     private static final Pattern CHAR_PATTERN = compile("'.'"); //no spaces inside
-    private static final Pattern VAR_TO_VAR_PATTERN = compile("(\\s*\\D\\w*\\s*=\\D\\w*)|" +
-            "(\\s*\\D\\w*\\s*=\\d\\s*)"); //a=b or a=5 without type
+    private static final Pattern VAR_TO_VAR_PATTERN = compile("((\\s*\\D\\w*\\s*)=\\s*(\\D\\w+))|(\\s*\\D\\w*\\s*=\\d\\s*)"); //a=b or a=5 without type
     private static int VARIABLE_EXISTS_IN_SCOPE = -1;
     private static int VARIABLE_EXISTS_NOT_IN_SCOPE = 0;
     private static int VARIABLE_DOESNT_EXIST = 1;
+//    private static Pattern ""
 
 
     /**
@@ -127,6 +126,8 @@ public class regexManager {
             GlobalVariable> globalHashMap, String typeToInsert)
             throws
             CompileErrorException {
+        if (variableToAnalyze.matches(".*=\\s*=\\s*"))
+            throw new CompileErrorException();
         String[] specificVariable = variableToAnalyze.split("=");
         int allowedLength = 2;
         if (specificVariable.length > allowedLength || (isFinal && specificVariable.length == 1))
@@ -431,6 +432,9 @@ public class regexManager {
         }
         String parameters = methodMatches.group(4);
         String methodName = methodMatches.group(1);
+        Matcher methodMatcher = METHOD_NAME_PATTERN.matcher(methodName);
+        if (!methodMatcher.matches())
+            throw new CompileErrorException();
         return new String[]{parameters, methodName}; // returns the name and parameters as an index
     }
 
@@ -578,8 +582,8 @@ public class regexManager {
             throws CompileErrorException {
         illegalCommaEqualsChecker(currentLine);
         String[] lines = currentLine.split("=");
-        String variable = lines[0];
-        String AssignmentToCheck = lines[1];
+        String variable = lines[0].trim();
+        String AssignmentToCheck = lines[1].trim();
         if (method.suchVariableExists(variable) != null) {
             LocalVariable variableInHash = method.suchVariableExists(variable);
             String type = variableInHash.getType();
@@ -680,20 +684,41 @@ public class regexManager {
         return false;
     }
 //todo fix
-    /*checks if the parameter is an existing variable*/
+    /*checks if the parameter is an existing variable, returns false if not*/
     private static boolean compareParameterToType(Matcher isVariableName, String parameter, Method methodCalled,
                                                   Method
                                                           method, int i) throws
             CompileErrorException {
+        if (parameter.matches("\\s*true|false\\s*"))  //edge case - true|false is not a variable name;
+            return false;
         if (isVariableName.matches()) {
             parameter = parameter.trim();
             LocalVariable parameterToCheck = method.suchVariableExists(parameter);  //illegal case
-            if (parameterToCheck != null && methodCalled.getMethodParametersType()[i].equals
-                    (parameterToCheck.getType()) && parameterToCheck.isInitialization())
+            if (parameterToCheck != null && parameterToCheck.isInitialization()&&typeNameMatcher(methodCalled
+                    .getMethodParametersType()[i],parameterToCheck.getType()) && parameterToCheck
+                    .isInitialization())
                 return true;
             else
                 throw new CompileErrorException();
         }
         return false;  //different pattern
     }
-}
+
+    /*Check that the types of variables match up*/
+    private static boolean typeNameMatcher(String originalType, String typeToCheck) {
+        originalType = originalType.trim();
+        typeToCheck = typeToCheck.trim();
+        if (originalType.equals(typeToCheck))
+            return true;
+        if (originalType.equals(BOOLEAN)) {
+            if (typeToCheck.equals(INT)||typeToCheck.equals(DOUBLE))
+                return true;
+        }
+        if (originalType.equals(DOUBLE)){
+            if (typeToCheck.equals(INT))
+                return true;
+        }
+        return false;
+    }
+
+    }
