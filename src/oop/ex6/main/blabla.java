@@ -1,11 +1,8 @@
 package oop.ex6.main;
-import java.util.*;
-
 import oop.ex6.CompileErrorException;
-import oop.ex6.GlobalVariable;
-import oop.ex6.Variable;
-import java.util.*;
-import java.util.regex.Pattern;
+import oop.ex6.dataStructures.GlobalVariable;
+
+import java.util.HashMap;
 
 public class blabla {
 
