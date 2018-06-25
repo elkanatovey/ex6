@@ -654,8 +654,13 @@ public class regexManager {
             if (methodCalled != null) {
                 String parameters = methodCallMatcher.group(2);
                 String[] parameterArray = parameters.split(",");
-                if (parameterArray.length != methodCalled.getMethodParametersType().length)
-                    throw new CompileErrorException();
+                if (parameterArray.length != methodCalled.getMethodParametersType().length) {
+                    if (parameterArray.length == 1 && parameterArray[0].equals("") && methodCalled
+                            .getMethodParametersType().length == VARIABLE_DOESNT_EXIST)
+                        return true;  // edge case - no parameters in method
+                    else
+                        throw new CompileErrorException();
+                }
                 for (int i = 0; i < parameterArray.length; i++) {
                     Matcher isVariableName = VARIABLE_NAME_PATTERN.matcher(parameterArray[i].trim());
                     if (!compareParameterToType(isVariableName, parameterArray[i], methodCalled, method, i)) {
