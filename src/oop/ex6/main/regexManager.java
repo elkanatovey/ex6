@@ -39,7 +39,7 @@ public class regexManager {
     //check if before final there spaces
     private static final Pattern TYPE_PATTERN = compile("\\s*((int|double|boolean|char|String)\\s+).*");
     private static final Pattern FINAL_PATTERN = compile(FINAL_STATEMENT);
-    private static final Pattern COMMA_PATTERN = compile(".*,\\s*(,).*");
+    private static final Pattern COMMA_PATTERN = compile(".*,\\s*(,).*|.*,$");
     private static final String RESERVED_KEYWORDS =
             "((\\w*\\s+)|\\s*)((int|double|boolean|char|String|void|final|if|while|true|false|return)\\s+.*)";
     private static final Pattern RESERVED_KEYWORDS_PATTERN = compile(RESERVED_KEYWORDS);
@@ -143,6 +143,8 @@ public class regexManager {
             throw new CompileErrorException();
         if (globalHashMap.containsKey(variableName)) {
             GlobalVariable existVar = globalHashMap.get(variableName);
+            if (existVar.getName().equals(variableToAnalyze.trim()))
+                throw new CompileErrorException();
             if (existVar.isInitialization())
                 throw new CompileErrorException();
         }
@@ -336,10 +338,12 @@ public class regexManager {
             throws CompileErrorException {
         illegalCommaEqualsChecker(currentLine);
         String[] lines = currentLine.split("=");
-        String variable = lines[0];
-        String AssignmentToCheck = lines[1];
+        String variable = lines[0].trim();
+        String AssignmentToCheck = lines[1].trim();
         if (variables.containsKey(variable)) {
             GlobalVariable variableInHash = variables.get(variable);
+            if (variableInHash.getName().equals(AssignmentToCheck))
+                throw new CompileErrorException();
             String type = variableInHash.getType();
             if (variableInHash.isFinal())
                 throw new CompileErrorException();
