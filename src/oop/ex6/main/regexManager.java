@@ -229,9 +229,6 @@ public class regexManager {
     }
 
 
-
-
-
     /**
      * Receive variable name, type, and assignment to the variable. Checks if the assignment is an existing
      * variable
@@ -304,8 +301,8 @@ public class regexManager {
         if (equleCommaMatcher.matches()) //if there is a "," or "=" which we split with (example ab=)
             throw new CompileErrorException();
         String[] variableArray = variables.split(",");
-        for (String variable: variableArray){
-            if (variable.equals("")&&variableArray.length>1)
+        for (String variable : variableArray) {
+            if (variable.equals("") && variableArray.length > 1)
                 throw new CompileErrorException();
         }
         return variables.split(",");
@@ -458,20 +455,19 @@ public class regexManager {
         String conditionIf = isIfWhileStatement(lineToRead).trim();
         String[] conditionsArray = conditionIf.split("(\\|\\s*\\|)|(\\&\\s*\\&)");
         for (String param : conditionsArray) {
-            param=param.trim();
-        Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(param); //condition : (true\false)
-        if (!booleanMatcher.matches()) {
-            Matcher intDoubleMatcher = CONDITIONS_INT_DOUBLE_PATTERN.matcher(param); //condition : (5)
+            param = param.trim();
+            Matcher booleanMatcher = BOOLEAN_PATTERN.matcher(param); //condition : (true\false)
+            if (!booleanMatcher.matches()) {
+                Matcher intDoubleMatcher = CONDITIONS_INT_DOUBLE_PATTERN.matcher(param); //condition : (5)
                 if (!intDoubleMatcher.matches()) {
                     Matcher booleanVarMatcher = VARIABLE_NAME_PATTERN.matcher(param); //condition : (a)
                     if (booleanVarMatcher.matches()) {
                         if (!conditionCaseVariable(param, currentMethod))
                             throw new CompileErrorException();
-                    }
-                    else
+                    } else
                         throw new CompileErrorException();
                 }
-        }
+            }
         }
         return;
     }
@@ -498,7 +494,7 @@ public class regexManager {
     public static boolean innerLineCheck(String lineToRead, Method method) throws CompileErrorException {
         char endOfLine = lineToRead.charAt(lineToRead.length() - 1);
         switch (endOfLine) {
-            case ';':{
+            case ';': {
                 Matcher returnMatcher = RETURN_STATEMENT_PATTERN.matcher(lineToRead);
                 if (returnMatcher.matches())
                     return true;
@@ -506,10 +502,10 @@ public class regexManager {
                     return true;
                 isValidLocalVariable(lineToRead, method);
                 return true;
-                }
-                //a=b matcher
-                //int a; matcher
-                //int a=b; matcher
+            }
+            //a=b matcher
+            //int a; matcher
+            //int a=b; matcher
 
             case '{':
                 checkConditionInsideWhileIf(lineToRead, method);
@@ -521,7 +517,7 @@ public class regexManager {
     }
 
     private static void isValidLocalVariable
-            (String lineToRead,  Method method) throws CompileErrorException {
+            (String lineToRead, Method method) throws CompileErrorException {
         lineToRead = lineToRead.trim();
         if (lineToRead.endsWith(";"))
             lineToRead = lineToRead.substring(0, lineToRead.length() - 1);
@@ -547,7 +543,7 @@ public class regexManager {
                                                String typeToInsert)
             throws
             CompileErrorException {
-        if (method.getLocalVariable(variableToAnalyze)!=null)
+        if (method.getLocalVariable(variableToAnalyze) != null)
             throw new CompileErrorException();
         String[] specificVariable = variableToAnalyze.split("=");
         int allowedLength = 2;
@@ -563,13 +559,13 @@ public class regexManager {
                 throw new CompileErrorException();
         } else if (isFinal)
             throw new CompileErrorException();
-        if (method.suchVariableExists(variableName)!=null) {
+        if (method.suchVariableExists(variableName) != null) {
             LocalVariable existVar = method.suchVariableExists(variableName);
             if (existVar.isInitialization())//todo is final?
                 throw new CompileErrorException();
         }
         //if the key exs but the existing global variable isn't initialized it ok
-        method.addUpdateLocalVariable(new LocalVariable(typeToInsert, initialization,isFinal, variableName));
+        method.addUpdateLocalVariable(new LocalVariable(typeToInsert, initialization, isFinal, variableName));
         //todo specificVariable[0] twice ? type is the name, therefore twice
     }
 
@@ -580,13 +576,13 @@ public class regexManager {
         String[] lines = currentLine.split("=");
         String variable = lines[0];
         String AssignmentToCheck = lines[1];
-        if (method.suchVariableExists(variable)!=null) {
+        if (method.suchVariableExists(variable) != null) {
             LocalVariable variableInHash = method.suchVariableExists(variable);
             String type = variableInHash.getType();
             if (variableInHash.isFinal())
                 throw new CompileErrorException();
             if (checkLocalLegalAssignment(AssignmentToCheck, type, method)) {
-                method.addUpdateLocalVariable(new LocalVariable(type, true,false, variable));  //todo make
+                method.addUpdateLocalVariable(new LocalVariable(type, true, false, variable));  //todo make
                 // actually
                 // local
                 return true;
@@ -601,7 +597,7 @@ public class regexManager {
     private static boolean checkLocalLegalAssignment
             (String AssignmentToCheck, String type, Method method) throws CompileErrorException {
         AssignmentToCheck = AssignmentToCheck.trim();
-        if(checkLocalLegalAssignmentHelper(AssignmentToCheck, type, method)) {
+        if (checkLocalLegalAssignmentHelper(AssignmentToCheck, type, method)) {
             return true;
         }
         return matchTypeToValue(type, AssignmentToCheck);
@@ -616,14 +612,14 @@ public class regexManager {
      *
      * @param AssignmentToCheck the name of a possible variable (in our case above b)
      * @param type              the type of the current variable (in our case above a)
-     * @param method the current scope
+     * @param method            the current scope
      * @return true/false if it is an assignment or not
      * @throws CompileErrorException if a legal assignment was attempted
      */
     private static boolean checkLocalLegalAssignmentHelper
-    (String AssignmentToCheck, String type,  Method method)
+    (String AssignmentToCheck, String type, Method method)
             throws CompileErrorException {
-        if (method.suchVariableExists(AssignmentToCheck)!=null) {
+        if (method.suchVariableExists(AssignmentToCheck) != null) {
             if (method.suchVariableExists(AssignmentToCheck).isInitialization()) {
                 if (type.equals(method.suchVariableExists(AssignmentToCheck).getType()))
                     return true;
@@ -649,8 +645,6 @@ public class regexManager {
     }
 
 
-
-
     /*Check if this is calling a function, return true false if it is, if illegal call throw exception*/
     private static boolean innerSemiColonCheck(String lineToRead, Method method) throws CompileErrorException {
         Matcher methodCallMatcher = CALL_METHOD.matcher(lineToRead);
@@ -663,25 +657,24 @@ public class regexManager {
                 if (parameterArray.length != methodCalled.getMethodParametersType().length)
                     throw new CompileErrorException();
                 for (int i = 0; i < parameterArray.length; i++) {
-                    Matcher isVariableName = VARIABLE_NAME_PATTERN.matcher(parameterArray[i]);
+                    Matcher isVariableName = VARIABLE_NAME_PATTERN.matcher(parameterArray[i].trim());
                     if (!compareParameterToType(isVariableName, parameterArray[i], methodCalled, method, i)) {
-                        if (!matchTypeToValue(methodCalled.getMethodParametersType()[i],parameterArray[i]))
+                        if (!matchTypeToValue(methodCalled.getMethodParametersType()[i], parameterArray[i]))
                             throw new CompileErrorException();
                     }
                 }
                 return true;
-            }
-            else {
+            } else {
                 throw new CompileErrorException(); //illegal method
             }
         }
         return false;
     }
-
+//todo fix
     /*checks if the parameter is an existing variable*/
     private static boolean compareParameterToType(Matcher isVariableName, String parameter, Method methodCalled,
-                                            Method
-            method, int i) throws
+                                                  Method
+                                                          method, int i) throws
             CompileErrorException {
         if (isVariableName.matches()) {
             parameter = parameter.trim();
