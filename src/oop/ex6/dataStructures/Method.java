@@ -134,7 +134,7 @@ public class Method {
     public void checkLegal(HashMap<String,GlobalVariable> globals) throws CompileErrorException{
         this.globals = globals;
         String lineToCheck = linesToRead.pollFirst();
-        String previousLine = lineToCheck;
+        String previousLine;
         while (lineToCheck!=null) {
             previousLine = lineToCheck;
             if (previousLine.contentEquals("}"))  // if we closed the block
@@ -159,7 +159,7 @@ public class Method {
 
     public boolean isLegalMethodClose(){
         if (linesToRead.peekLast().equals("}")){
-            if (linesToRead.get((linesToRead.size()-2)).equals("return;"))
+            if (linesToRead.get((linesToRead.size()-2)).matches("^return\\s*;$"))
                 return true;
         }
         return false;
